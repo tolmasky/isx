@@ -38,6 +38,11 @@ Dockerfile.compile = function (fDockerfile)
 
 Dockerfile.render = function (dockerfile)
 {
+    const stringified = dockerfile.instructions
+        .map(instruction => instruction())
+        .join("\n");
+
+    return `FROM ${dockerfile.from}\n${stringified}`;
 }
 
 function compile(compileState, element)

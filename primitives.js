@@ -1,11 +1,11 @@
 const { Set } = require("@algebraic/collections");
 const functions =
 {
-    add: ({ from, to }) => `ADD ${from} ${to}`,
+    add: ({ source, destination }) => `ADD ${source} ${destination}`,
 
     cmd: ({ children:[command] }) => `CMD ${command}`,
 
-    copy: ({ from, to }) => `COPY ${from} ${to}`,
+    copy: ({ source, destination }) => `COPY ${source} ${destination}`,
     
     label: ({ children:[label] }) => `LABEL ${children}`,
 

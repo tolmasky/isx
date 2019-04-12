@@ -29,35 +29,28 @@ for (const key of Object.keys(primitives))
 
 global.node = require("../node");
 
-const { mkdtempSync, writeFileSync } = require("fs");
-const { spawnSync: spawn } = require("child_process");
-const tmp = `${require("os").tmpdir()}/`;
+
 
 const fDockerfile = require(absolute);
 const dockerfile = Dockerfile.compile(fDockerfile);
-const { buildContext } = dockerfile;
-const steps =
-[
-    `printf "${buildContext.filenames.join("\n")}"`,
-    `tar -cv --files-from - -f test.tar`/*,
-    `docker build -f ${DockerfilePath} -`*/
-].join(" | ")
 
-spawn("sh", ["-c", steps], { cwd:buildContext.workspace, stdio:["inherit", "inherit", "inherit"] });
 
-/*
+const { mkdtempSync, writeFileSync } = require("fs");
+const tmp = `${require("os").tmpdir()}/`;
 const DockerfilePath = `${mkdtempSync(tmp)}/Dockerfile`;
+const DockerfileContents = Dockerfile.render(dockerfile);
 
 writeFileSync(DockerfilePath, DockerfileContents, "utf-8");
-
-const workspace = dirname(absolute);
+console.log(DockerfileContents);
+const { buildContext } = dockerfile;
+const includes = buildContext.filenames.push(DockerfilePath).join("\n");
 const steps =
 [
-    `printf "../evaluator\n${DockerfilePath}"`,
-    `tar -cv --files-from -`,
+    `printf "${includes}"`,
+    `tar -cv --files-from - `,
     `docker build -f ${DockerfilePath} -`
-].join(" | ");
-//spawn("cat", [DockerfilePath], { stdio:["inherit", "inherit", "inherit"] });
-spawn("sh", ["-c", steps], { cwd: workspace, stdio:["inherit", "inherit", "inherit"] });*/
+].join(" | ")
 
+const { spawnSync: spawn } = require("child_process");
 
+spawn("sh", ["-c", steps], { cwd:buildContext.workspace, stdio:["inherit", "inherit", "inherit"] });

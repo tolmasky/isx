@@ -29,10 +29,12 @@ BuildContext.from = function ({ workspace, instructions })
         { ignore, onlyFiles: false, markDirectories: true });
     const grouped = List(string)(firstPass)
         .groupBy(path => path.endsWith("/") ? "directories" : "filenames");
+    const directories = grouped.get("directories", List(string)());
     const secondPass = glob.sync(
         grouped.get("directories").map(path => `${path}**/*`).toArray(),
         { ignore });
-    const filenames = grouped.get("filenames").concat(secondPass)
+    const filenames = grouped.get("filenames", List(string)())
+        .concat(secondPass)
         .sort()
         .map(filename => path.relative(workspace, filename));
 

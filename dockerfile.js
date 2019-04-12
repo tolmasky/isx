@@ -47,6 +47,18 @@ Dockerfile.render = function (dockerfile)
 
 function compile(compileState, element)
 {
+    if (element === false)
+        return compileState;
+
+    const type = Array.isArray(element) ? "array" : typeof element;
+
+    if (type === "array")
+        return element.reduce((compileState, child) =>
+            compile(compileState, child), compileState);
+
+    if (type !== "function")
+        throw Error(`Unexpected ${type} when evaluating Dockerfile DSX.`);
+
     if (primitives.has(base(element)))
     {
         const instructions = compileState.instructions.push(element);
@@ -55,19 +67,8 @@ function compile(compileState, element)
     }
 
     const [updated, result] = stateful(compileState, element);
-    const type = typeof result;
 
-    if (result === false)
-        return updated;
-
-    if (Array.isArray(result))
-        return result.reduce((compileState, child) =>
-            compile(compileState, child), updated);
-
-    if (type === "function")
-        return compile(updated, result);
-
-    throw Error(`Unexpected ${type} when evaluating Dockerfile DSX.`);
+    return compile(updated, result);
 }
 
 function stateful(compileState, element)

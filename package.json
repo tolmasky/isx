@@ -1,0 +1,18 @@
+{
+  "name": "dsx",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@algebraic/collections": "^1.0.0-alpha.10",
+    "@algebraic/type": "^1.0.0-alpha.10",
+    "commander": "^2.20.0",
+    "generic-jsx": "^18.0.0-beta.3"
+  }
+}

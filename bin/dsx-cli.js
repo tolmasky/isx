@@ -34,7 +34,18 @@ const { spawnSync: spawn } = require("child_process");
 const tmp = `${require("os").tmpdir()}/`;
 
 const fDockerfile = require(absolute);
-const DockerfileContents = Dockerfile.render(fDockerfile);
+const dockerfile = Dockerfile.compile(fDockerfile);
+const { buildContext } = dockerfile;
+const steps =
+[
+    `printf "${buildContext.filenames.join("\n")}"`,
+    `tar -cv --files-from - -f test.tar`/*,
+    `docker build -f ${DockerfilePath} -`*/
+].join(" | ")
+
+spawn("sh", ["-c", steps], { cwd:buildContext.workspace, stdio:["inherit", "inherit", "inherit"] });
+
+/*
 const DockerfilePath = `${mkdtempSync(tmp)}/Dockerfile`;
 
 writeFileSync(DockerfilePath, DockerfileContents, "utf-8");
@@ -47,6 +58,6 @@ const steps =
     `docker build -f ${DockerfilePath} -`
 ].join(" | ");
 //spawn("cat", [DockerfilePath], { stdio:["inherit", "inherit", "inherit"] });
-spawn("sh", ["-c", steps], { cwd: workspace, stdio:["inherit", "inherit", "inherit"] });
+spawn("sh", ["-c", steps], { cwd: workspace, stdio:["inherit", "inherit", "inherit"] });*/
 
 

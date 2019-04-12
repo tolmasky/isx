@@ -1,4 +1,5 @@
-module.exports =
+const { Set } = require("@algebraic/collections");
+const functions =
 {
     add: ({ from, to }) => `ADD ${from} ${to}`,
 
@@ -11,16 +12,15 @@ module.exports =
     run: ({ PATH, children:[command] }) =>
         `RUN ${ PATH !== void(0) ? `PATH=${PATH} && ${command}` : command }`,
 
-    mkdir: ({ children:[path] }) => `MKDIR ${path}`,
-
     workdir: ({ children:[path] }) => `WORKDIR ${path}`,
 
     user: ({ children:[user] }) => `USER ${user}`,
     
     volume: ({ children:JSON }) => `VOLUME ${JSON}`,
 
-    state: () => {},
+    state: () => {}
+};
 
-    include: () => {},
-    exclude: () => {},
-}
+module.exports = Object.assign(
+    Set(Function)(Object.values(functions)),
+    functions);

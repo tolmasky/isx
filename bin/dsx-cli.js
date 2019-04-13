@@ -1,4 +1,4 @@
-const { dirname, resolve } = require("path");
+const { dirname, resolve, sep } = require("path");
 //const { base, getArguments } = require("generic-jsx");
 
 const options = require("commander")
@@ -13,15 +13,11 @@ require("magic-ws/modify-resolve-lookup-paths")(packageDescriptions);
 
 const relative = options.args[0] || "dockerfile.dsx.js";
 const absolute = resolve(process.cwd(), relative);
-const escapeRegExp = require("lodash/escapeRegExp");
 Error.stackTraceLimit = 1000;
+
 require("@babel/register")
 ({
-    only:
-    [
-        new RegExp(`^${escapeRegExp(dirname(absolute))}`, "i"),
-        new RegExp(`^${dirname(__dirname)}`, "i")
-    ],
+    ignore:[new RegExp(`^.*${sep}node_modules${sep}/.*`, "i")],
     plugins:[require("@generic-jsx/babel-plugin")]
 });
 

@@ -21,7 +21,6 @@ BuildContext.from = function ({ workspace, instructions })
     const ignore = fromDockerignore(workspace);
     const include = instructions
         .filter(isCopyOrAdd)
-        .map(instruction => (console.log(instruction), instruction))
         .map(resolve(workspace))
         .toArray();
     const firstPass = glob.sync(

@@ -5,44 +5,47 @@ const { base, getArguments } = require("generic-jsx");
 const primitives = require("./primitives");
 
 const BuildContext = require("./build-context");
-const Dockerfile = data `Dockerfile` (
+const Image = data `Image` (
     buildContext    => BuildContext,
+    tags            => List(string),
     from            => string,
-    instructions    => List(string));
+    instructions    => List(string),
+    socket          => Maybe(string));
 const CompileState = data `CompileState` (
     instructions    => [List(string), List(string)()],
     states          => [Map(Function, Object), Map(Function, Object)()] );
 
 
-module.exports = Dockerfile;
+module.exports = Image;
 
-Dockerfile.Dockerfile = Dockerfile;
-
-Dockerfile.compile = function (fDockerfile)
+Image.compile = function (fImage)
 {
-    const { from, workspace, children } = getArguments(fDockerfile);
+    const args = getArguments(fImage);
+    const { from, workspace, children, } = args;
 
     if (!from)
-        throw Error("Dockerfile must have a from property.");
+        throw Error("Image must have a from property.");
 
     if (!workspace)
-        throw Error("Dockerfile must have a context property.");
+        throw Error("Image must have a context property.");
 
     const { instructions } = children.reduce(
         (compileState, child) =>
             compile(compileState, child), CompileState({ }));
     const buildContext = BuildContext.from({ workspace, instructions });
+    const tags = List(string)((args.tags || []).concat(args.tag || []));
+    const socket = args.socket || Maybe(string).Nothing;
 
-    return Dockerfile({ buildContext, from, instructions });
+    return Image({ buildContext, from, instructions, tags, socket });
 }
 
-Dockerfile.render = function (dockerfile)
+Image.render = function (image)
 {
-    const stringified = dockerfile.instructions
+    const stringified = image.instructions
         .map(instruction => instruction())
         .join("\n");
 
-    return `FROM ${dockerfile.from}\n${stringified}`;
+    return `FROM ${image.from}\n${stringified}`;
 }
 
 function compile(compileState, element)
@@ -57,7 +60,7 @@ function compile(compileState, element)
             compile(compileState, child), compileState);
 
     if (type !== "function")
-        throw Error(`Unexpected ${type} when evaluating Dockerfile DSX.`);
+        throw Error(`Unexpected ${type} when evaluating Image DSX.`);
 
     if (primitives.has(base(element)))
     {

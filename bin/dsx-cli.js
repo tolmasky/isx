@@ -1,3 +1,4 @@
+const { Maybe, string } = require("@algebraic/type");
 const { dirname, resolve, sep } = require("path");
 //const { base, getArguments } = require("generic-jsx");
 
@@ -21,10 +22,10 @@ require("@babel/register")
     plugins:[require("@generic-jsx/babel-plugin")]
 });
 
-const Dockerfile = require("../dockerfile");
+const Image = require("../image");
 const primitives = require("../primitives");
 
-global.Dockerfile = Dockerfile;
+global.Image = Image;
 
 for (const key of Object.keys(primitives))
     global[key] = primitives[key];
@@ -32,26 +33,44 @@ for (const key of Object.keys(primitives))
 global.node = require("../node");
 
 
-const fDockerfile = require(absolute);
-const dockerfile = Dockerfile.compile(fDockerfile);
+const fImages = [].concat(require(absolute));
+const images = fImages.map(fImage => Image.compile(fImage));
 
+for (const image of images)
+{
+    const { mkdtempSync, writeFileSync } = require("fs");
+    const tmp = `${require("os").tmpdir()}/`;
+    const DockerfilePath = `${mkdtempSync(tmp)}/Dockerfile`;
+    const DockerfileContents = Image.render(image);
 
-const { mkdtempSync, writeFileSync } = require("fs");
-const tmp = `${require("os").tmpdir()}/`;
-const DockerfilePath = `${mkdtempSync(tmp)}/Dockerfile`;
-const DockerfileContents = Dockerfile.render(dockerfile);
+    writeFileSync(DockerfilePath, DockerfileContents, "utf-8");
+    console.log(DockerfileContents);
+    const { buildContext } = image;
+    const includes = buildContext.filenames.push(DockerfilePath).join("\n");
 
-writeFileSync(DockerfilePath, DockerfileContents, "utf-8");
-console.log(DockerfileContents);
-const { buildContext } = dockerfile;
-const includes = buildContext.filenames.push(DockerfilePath).join("\n");
-const steps =
-[
-    `printf "${includes}"`,
-    `tar -cv --files-from - `,
-    `docker build -f ${DockerfilePath} -`
-].join(" | ")
+    const steps =
+    [
+        `printf "${includes}"`,
+        `tar -cv --files-from - `,
+        toBuildCommand(image, DockerfilePath)
+    ].join(" | ")
 
-const { spawnSync: spawn } = require("child_process");
+    const { spawnSync: spawn } = require("child_process");
 
-spawn("sh", ["-c", steps], { cwd:buildContext.workspace, stdio:["inherit", "inherit", "inherit"] });
+    spawn("sh", ["-c", steps], { cwd:buildContext.workspace, stdio:["inherit", "inherit", "inherit"] });
+}
+
+function toBuildCommand(image, path)
+{
+    const flags =
+    [
+        image.socket !== Maybe(string).Nothing && `-H ${image.socket}`
+    ].filter(flag => !!flag).join(" ");
+    const buildFlags =
+    [
+        `-f ${path}`,
+        ...image.tags.map(tag => `-t ${tag}`)
+    ].filter(flag => !!flag).join(" ");
+
+    return `docker ${flags} build ${buildFlags} -`;
+}

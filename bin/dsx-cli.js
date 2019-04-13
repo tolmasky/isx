@@ -6,8 +6,10 @@ const options = require("commander")
     .parse(process.argv);
 
 const getPackageDescriptions = require("magic-ws/get-package-descriptions");
-require("magic-ws/modify-resolve-lookup-paths")
-        (getPackageDescriptions([], [`${__dirname}/../node_modules/generic-jsx`]));
+const genericJSXPath = dirname(require.resolve("generic-jsx"));
+const packageDescriptions = getPackageDescriptions([], [genericJSXPath]);
+
+require("magic-ws/modify-resolve-lookup-paths")(packageDescriptions);
 
 const relative = options.args[0] || "dockerfile.dsx.js";
 const absolute = resolve(process.cwd(), relative);
@@ -20,7 +22,7 @@ require("@babel/register")
         new RegExp(`^${escapeRegExp(dirname(absolute))}`, "i"),
         new RegExp(`^${dirname(__dirname)}`, "i")
     ],
-    plugins:[require("generic-jsx/babel-plugin-transform-generic-jsx")]
+    plugins:[require("@generic-jsx/babel-plugin")]
 });
 
 const Dockerfile = require("../dockerfile");

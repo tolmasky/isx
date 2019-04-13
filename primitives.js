@@ -7,6 +7,8 @@ const functions =
 
     copy: ({ source, destination }) => `COPY ${source} ${destination}`,
     
+    env: ({ key, value }) => `ENV ${key}=${JSON.stringify(value)}`,
+
     label: ({ children:[label] }) => `LABEL ${children}`,
 
     run: ({ PATH, children:[command] }) =>

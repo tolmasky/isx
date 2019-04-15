@@ -6,8 +6,10 @@ const functions =
     cmd: ({ children:[command] }) => `CMD ${command}`,
 
     copy: ({ source, destination }) => `COPY ${source} ${destination}`,
-    
+
     env: ({ key, value }) => `ENV ${key}=${JSON.stringify(value)}`,
+
+    expose: ({ children:[port] }) => `EXPOSE ${port}`,
 
     label: ({ children:[label] }) => `LABEL ${children}`,
 
@@ -17,7 +19,7 @@ const functions =
     workdir: ({ children:[path] }) => `WORKDIR ${path}`,
 
     user: ({ children:[user] }) => `USER ${user}`,
-    
+
     volume: ({ children:JSON }) => `VOLUME ${JSON}`,
 
     state: () => {}

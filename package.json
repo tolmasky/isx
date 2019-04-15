@@ -12,6 +12,7 @@
   "dependencies": {
     "@algebraic/collections": "^1.0.0-alpha.10",
     "@algebraic/type": "^1.0.0-alpha.10",
+    "@await/spawn": "^5.0.0",
     "commander": "^2.20.0",
     "fast-glob": "^2.2.6",
     "generic-jsx": "^19.0.0",

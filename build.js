@@ -2,12 +2,16 @@ const { Maybe, string } = require("@algebraic/type");
 const Image = require("./image");
 const primitives = require("./primitives");
 
+const spawn = require("@await/spawn");
 
-module.exports = function build({ filename })
+
+module.exports = async function build({ filename }, ...args)
 {
     FIXME_registerGenericJSX();
 
-    const fImages = [].concat(require(filename));
+    const result = require(filename);
+    const fImages = [].concat(typeof result === "function" ?
+        result(...args) : result);
     const images = fImages.map(fImage => Image.compile(fImage));
 
     for (const image of images)
@@ -29,9 +33,12 @@ module.exports = function build({ filename })
             toBuildCommand(image, DockerfilePath)
         ].join(" | ")
     
-        const { spawnSync: spawn } = require("child_process");
-    
-        spawn("sh", ["-c", steps], { cwd:buildContext.workspace, stdio:["inherit", "inherit", "inherit"] });
+        const cwd = buildContext.workspace;
+        const stdio = ["inherit", "inherit", "inherit"];
+
+        await spawn("sh", ["-c", steps], { cwd, stdio });
+
+        console.log("FINISHED BUILDING " + image.tag);
     }
 }
 
@@ -63,10 +70,10 @@ function FIXME_registerGenericJSX()
     const packageDescriptions = getPackageDescriptions([], [genericJSXPath]);
 
     require("magic-ws/modify-resolve-lookup-paths")(packageDescriptions);
-    require("@babel/register")
+    require("./bin/node_modules/@babel/register")
     ({
         ignore:[new RegExp(`^.*${sep}node_modules${sep}/.*`, "i")],
-        plugins:[require("@generic-jsx/babel-plugin")]
+        plugins:[require("./bin/node_modules/@generic-jsx/babel-plugin")]
     });
 
     global.Image = Image;

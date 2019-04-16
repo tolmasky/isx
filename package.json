@@ -13,6 +13,8 @@
     "@algebraic/collections": "^1.0.0-alpha.10",
     "@algebraic/type": "^1.0.0-alpha.10",
     "@await/spawn": "^5.0.0",
+    "@babel/core": "^7.4.3",
+    "@babel/register": "^7.4.0",
     "commander": "^2.20.0",
     "fast-glob": "^2.2.6",
     "generic-jsx": "^19.0.0",

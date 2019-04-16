@@ -70,10 +70,10 @@ function FIXME_registerGenericJSX()
     const packageDescriptions = getPackageDescriptions([], [genericJSXPath]);
 
     require("magic-ws/modify-resolve-lookup-paths")(packageDescriptions);
-    require("./bin/node_modules/@babel/register")
+    require("@babel/register")
     ({
         ignore:[new RegExp(`^.*${sep}node_modules${sep}/.*`, "i")],
-        plugins:[require("./bin/node_modules/@generic-jsx/babel-plugin")]
+        plugins:[require("@generic-jsx/babel-plugin")]
     });
 
     global.Image = Image;

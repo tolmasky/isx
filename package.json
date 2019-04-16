@@ -1,5 +1,5 @@
 {
-  "name": "dsx",
+  "name": "@isx/build",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,7 +8,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@algebraic/collections": "^1.0.0-alpha.10",
     "@algebraic/type": "^1.0.0-alpha.10",

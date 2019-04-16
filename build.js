@@ -32,7 +32,7 @@ module.exports = async function build({ filename }, ...args)
             `tar -cv --files-from - `,
             toBuildCommand(image, DockerfilePath)
         ].join(" | ")
-    
+
         const cwd = buildContext.workspace;
         const stdio = ["inherit", "inherit", "inherit"];
 

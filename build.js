@@ -5,13 +5,13 @@ const primitives = require("./primitives");
 const spawn = require("@await/spawn");
 
 
-module.exports = async function build({ filename }, ...args)
+module.exports = async function build({ filename }, properties)
 {
     FIXME_registerGenericJSX();
 
     const result = require(filename);
     const fImages = [].concat(typeof result === "function" ?
-        result(...args) : result);
+        result(properties) : result);
     const images = fImages.map(fImage => Image.compile(fImage));
 
     for (const image of images)

@@ -1,4 +1,5 @@
 const { is, Maybe, string } = require("@algebraic/type");
+const { List } = require("@algebraic/collections");
 const Image = require("./image");
 const primitives = require("./primitives");
 
@@ -11,8 +12,9 @@ module.exports = async function build({ filename, push }, properties)
     FIXME_registerGenericJSX();
 
     const result = require(filename);
-    const fImages = [].concat(typeof result === "function" ?
-        result(properties) : result);
+    const fImages = List(Function)([]
+        .concat(typeof result === "function" ?
+            result(properties) : result));
     const images = fImages.map(fImage => Image.compile(fImage));
 
     for (const image of images)
@@ -38,20 +40,20 @@ module.exports = async function build({ filename, push }, properties)
 
         await spawn("sh", ["-c", steps], { cwd, stdio });
 
-        console.log("FINISHED BUILDING " + image.tag);
+        console.log("FINISHED BUILDING " + image.tags);
     }
 
     if (push)
         await Promise.all(images
-            .map(toPushCommands)
+            .flatMap(toPushCommands)
             .map(args => spawn("docker", args, { stdio })));
 }
 
 function toPushCommands(image)
 {
-    const socket = is(string, image) ? ["-H", image.socket] : [];
+    const socket = is(string, image.socket) ? ["-H", image.socket] : [];
 
-    return image.tags.map(tag => [...socket, "push", tag]).toArray();
+    return image.tags.map(tag => [...socket, "push", tag]);
 }
 
 function toBuildCommand(image, path)

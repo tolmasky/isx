@@ -1,11 +1,12 @@
-const { Maybe, string } = require("@algebraic/type");
+const { is, Maybe, string } = require("@algebraic/type");
 const Image = require("./image");
 const primitives = require("./primitives");
 
+const stdio = ["inherit", "inherit", "inherit"];
 const spawn = require("@await/spawn");
 
 
-module.exports = async function build({ filename }, properties)
+module.exports = async function build({ filename, push }, properties)
 {
     FIXME_registerGenericJSX();
 
@@ -34,12 +35,23 @@ module.exports = async function build({ filename }, properties)
         ].join(" | ")
 
         const cwd = buildContext.workspace;
-        const stdio = ["inherit", "inherit", "inherit"];
 
         await spawn("sh", ["-c", steps], { cwd, stdio });
 
         console.log("FINISHED BUILDING " + image.tag);
     }
+
+    if (push)
+        await Promise.all(images
+            .map(toPushCommands)
+            .map(args => spawn("docker", args, { stdio })));
+}
+
+function toPushCommands(image)
+{
+    const socket = is(string, image) ? ["-H", image.socket] : [];
+
+    return image.tags.map(tag => [...socket, "push", tag]).toArray();
 }
 
 function toBuildCommand(image, path)

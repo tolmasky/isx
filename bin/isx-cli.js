@@ -12,4 +12,15 @@ const filename = resolve(process.cwd(), relative);
 const properties = JSON.parse(options.properties);
 const push = !!options.push;
 
-require("../build")({ filename, push }, properties);
+(async function ()
+{
+    try
+    {
+        await require("../build")({ filename, push }, properties);
+    }
+    catch (error)
+    {
+        console.error(error);
+        process.exit(1);
+    }
+})();

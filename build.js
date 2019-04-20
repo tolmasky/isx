@@ -7,7 +7,7 @@ const stdio = ["inherit", "inherit", "inherit"];
 const spawn = require("@await/spawn");
 
 
-module.exports = async function build({ filename, push }, properties)
+module.exports = async function build({ filename, push, sequential }, properties)
 {
     FIXME_registerGenericJSX();
 
@@ -17,7 +17,7 @@ module.exports = async function build({ filename, push }, properties)
             result(properties) : result));
     const images = fImages.map(fImage => Image.compile(fImage));
 
-    for (const image of images)
+    await each(async image =>
     {
         const { mkdtempSync, writeFileSync } = require("fs");
         const tmp = `${require("os").tmpdir()}/`;
@@ -40,13 +40,23 @@ module.exports = async function build({ filename, push }, properties)
 
         await spawn("sh", ["-c", steps], { cwd, stdio });
 
-        console.log("FINISHED BUILDING " + image.tags);
-    }
+        console.log("FINISHED BUILDING " + image.tags.join(", "));
+    }, images, sequential);
 
     if (push)
-        await Promise.all(images
-            .flatMap(toPushCommands)
-            .map(args => spawn("docker", args, { stdio })));
+        await each(
+            args => spawn("docker", args, { stdio }),
+            images.flatMap(toPushCommands),
+            sequential);
+}
+
+async function each(f, array, sequential)
+{
+    if (sequential)
+        for (const item of array)
+            await f(item);
+    else
+        await Promise.all(array.map(f));
 }
 
 function toPushCommands(image)

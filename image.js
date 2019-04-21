@@ -12,7 +12,7 @@ const Image = data `Image` (
     from            => string,
     instructions    => List(string),
     socket          => Maybe(string),
-    dockerArguments => [List(string), List(string)()]));
+    dockerArguments => [List(string), List(string)()]);
 const CompileState = data `CompileState` (
     instructions    => [List(string), List(string)()],
     states          => [Map(Function, Object), Map(Function, Object)()] );
@@ -23,7 +23,7 @@ module.exports = Image;
 Image.compile = function (fImage)
 {
     const args = getArguments(fImage);
-    const { from, workspace, children, } = args;
+    const { from, workspace, children } = args;
 
     if (!from)
         throw Error("Image must have a from property.");
@@ -38,7 +38,7 @@ Image.compile = function (fImage)
     const tags = List(string)((args.tags || []).concat(args.tag || []));
     const socket = args.socket || Maybe(string).Nothing;
     const dockerArguments = hasOwnProperty.call(args, "dockerArguments") ?
-        List(string)(dockerArguments) : List(string)();
+        List(string)(args.dockerArguments) : List(string)();
 
     return Image({ buildContext, from, instructions, tags, socket, dockerArguments });
 }

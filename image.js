@@ -1,6 +1,7 @@
 const { is, data, string, union, Maybe } = require("@algebraic/type");
 const { List, Map } = require("@algebraic/collections");
 const { base, getArguments } = require("generic-jsx");
+const { hasOwnProperty } = Object;
 
 const primitives = require("./primitives");
 
@@ -10,7 +11,8 @@ const Image = data `Image` (
     tags            => List(string),
     from            => string,
     instructions    => List(string),
-    socket          => Maybe(string));
+    socket          => Maybe(string),
+    dockerArguments => [List(string), List(string)()]));
 const CompileState = data `CompileState` (
     instructions    => [List(string), List(string)()],
     states          => [Map(Function, Object), Map(Function, Object)()] );
@@ -35,8 +37,10 @@ Image.compile = function (fImage)
     const buildContext = BuildContext.from({ workspace, instructions });
     const tags = List(string)((args.tags || []).concat(args.tag || []));
     const socket = args.socket || Maybe(string).Nothing;
+    const dockerArguments = hasOwnProperty.call(args, "dockerArguments") ?
+        List(string)(dockerArguments) : List(string)();
 
-    return Image({ buildContext, from, instructions, tags, socket });
+    return Image({ buildContext, from, instructions, tags, socket, dockerArguments });
 }
 
 Image.render = function (image)

@@ -70,7 +70,8 @@ function toBuildCommand(image, path)
 {
     const flags =
     [
-        image.socket !== Maybe(string).Nothing && `-H ${image.socket}`
+        image.socket !== Maybe(string).Nothing && `-H ${image.socket}`,
+        ...image.dockerArguments
     ].filter(flag => !!flag).join(" ");
     const buildFlags =
     [

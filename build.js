@@ -16,7 +16,8 @@ module.exports = async function build({ filename, push, sequential }, properties
         .concat(typeof result === "function" ?
             result(properties) : result));
     const images = fImages.map(fImage => Image.compile(fImage));
-
+console.log(images);
+/*
     await each(async image =>
     {
         const { mkdtempSync, writeFileSync } = require("fs");
@@ -47,7 +48,7 @@ module.exports = async function build({ filename, push, sequential }, properties
         await each(
             args => spawn("docker", args, { stdio }),
             images.flatMap(toPushCommands),
-            sequential);
+            sequential);*/
 }
 
 async function each(f, array, sequential)

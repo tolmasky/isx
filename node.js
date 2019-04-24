@@ -1,11 +1,8 @@
 const node =
 {
-    keys: ({ state: value }) => !value &&
-        <state value = { true }>
-            <run>{keys}</run>
-        </state>,
+    keys: () => <run>{keys}</run>,
 
-    install: ({ version = "10.15.0", destination, state }) =>
+    install: ({ version = "10.15.0", destination }) =>
     [
         <node.keys/>,
         <run>

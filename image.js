@@ -1,7 +1,8 @@
 const { is, data, string, union, Maybe } = require("@algebraic/type");
-const { List, Map } = require("@algebraic/collections");
+const { List, Map, Set } = require("@algebraic/collections");
 const { base, getArguments } = require("generic-jsx");
 const { hasOwnProperty } = Object;
+const ConstructorSymbol = require("./constructor-symbol");
 
 const primitives = require("./primitives");
 
@@ -11,16 +12,80 @@ const Image = data `Image` (
     tags            => List(string),
     from            => string,
     instructions    => List(string),
+    subImages      => [Set(Image), Set(Image)()],
     socket          => Maybe(string),
     dockerArguments => [List(string), List(string)()]);
 const CompileState = data `CompileState` (
     instructions    => [List(string), List(string)()],
     states          => [Map(Function, Object), Map(Function, Object)()] );
 
+const ImageChild = union `ImageChild` (Image, Function);
+
+//const Project = data `Project` (
+//    images          =>  Set(Image),
+//    intermediates   =>  Set(Image));
+
+Image.compile = function compile (element)
+{
+    const args = getArguments(element);
+    const f = base(element);
+    const constructor = f[ConstructorSymbol];
+
+    if (constructor)
+        return constructor(element);
+
+    if (element === false)
+        return false;
+
+    const type = Array.isArray(element) ? "array" : typeof element;
+
+    if (type === "array")
+        return element.map(compile);
+
+    if (type !== "function")
+        throw Error(`Unexpected ${type} when evaluating isx.`);
+
+    return compile(element());
+}
+
+Image[ConstructorSymbol] = function (element)
+{
+    const args = getArguments(element);
+    const { from, workspace, children } = args;
+
+    if (!from)
+        throw Error("Image must have a from property.");
+
+    if (!workspace)
+        throw Error("Image must have a context property.");
+
+    const compiled = List(ImageChild)(children.map(Image.compile))
+        .groupBy(child => is(Image, child) ? "images" : "instructions");
+    const subImages = Set(Image)(compiled.get("images", List(Image)()));
+    const instructions = compiled.get("instructions", List(Function)());
+
+    const buildContext = BuildContext.from({ workspace, instructions });
+    const tags = List(string)((args.tags || []).concat(args.tag || []));
+    const socket = args.socket || Maybe(string).Nothing;
+    const dockerArguments = hasOwnProperty.call(args, "dockerArguments") ?
+        List(string)(args.dockerArguments) : List(string)();
+
+    return Image({ buildContext, from, instructions, subImages, tags, socket, dockerArguments });
+}
 
 module.exports = Image;
 
-Image.compile = function (fImage)
+/*
+Project.compile = function (element)
+{
+    const args = getArguments(fImage);
+    const { from, workspace, children } = args;
+}
+
+
+module.exports = Image;
+
+Image.compile = function (project, fImage)
 {
     const args = getArguments(fImage);
     const { from, workspace, children } = args;
@@ -92,4 +157,4 @@ function stateful(compileState, element)
     const states = compileState.states.set(f, value);
 
     return [CompileState({ ...compileState, states }), children];
-}
+}*/

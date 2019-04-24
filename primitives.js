@@ -1,4 +1,5 @@
 const { Set } = require("@algebraic/collections");
+const ConstructorSymbol = require("./constructor-symbol");
 const functions =
 {
     add: ({ source, destination }) => `ADD ${source} ${destination}`,
@@ -20,10 +21,11 @@ const functions =
 
     user: ({ children:[user] }) => `USER ${user}`,
 
-    volume: ({ children:JSON }) => `VOLUME ${JSON}`,
-
-    state: () => {}
+    volume: ({ children:JSON }) => `VOLUME ${JSON}`
 };
+
+for (const instruction of Object.values(functions))
+    instruction[ConstructorSymbol] = instruction => instruction;
 
 module.exports = Object.assign(
     Set(Function)(Object.values(functions)),

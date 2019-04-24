@@ -1,20 +1,25 @@
+const Image = require("./image");
+
 const node =
 {
     keys: () => <run>{keys}</run>,
 
     install: ({ version = "10.15.0", destination }) =>
     [
-        <node.keys/>,
-        <run>
-            {[
-                `curl -SLO "https://nodejs.org/dist/v${version}/node-v${version}-linux-x64.tar.xz"`,
-                `curl -SLO "https://nodejs.org/dist/v${version}/SHASUMS256.txt.asc"`,
-                `gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc`,
-                `grep " node-v${version}-linux-x64.tar.xz\\$" SHASUMS256.txt | sha256sum -c -`,
-                `tar -xJf "node-v${version}-linux-x64.tar.xz" -C ${destination} --strip-components=1`,
-                `rm "node-v${version}-linux-x64.tar.xz" SHASUMS256.txt.asc SHASUMS256.txt`
-            ].join(" && ")}
-        </run>
+        <Image
+            tag = { `build-stage-download-node-${version}` }
+            from = "buildpack-deps:jessie"
+            workspace = { "." } >
+            <node.keys/>
+            <run>
+                {[
+                    `curl -SLO "https://nodejs.org/dist/v${version}/node-v${version}-linux-x64.tar.xz"`,
+                    `curl -SLO "https://nodejs.org/dist/v${version}/SHASUMS256.txt.asc"`,
+                    `gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc`,
+                    `grep " node-v${version}-linux-x64.tar.xz\\$" SHASUMS256.txt | sha256sum -c -`
+                ].join(" && ")}
+            </run>
+        </Image>
     ]
 }
 

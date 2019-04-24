@@ -24,10 +24,7 @@ const ImageChild = union `ImageChild` (Image, Function);
 //const Project = data `Project` (
 //    images          =>  Set(Image),
 //    intermediates   =>  Set(Image));
-Array.prototype.print = function ()
-{
-    return "["+this.map(element => Array.isArray(element) ? element.print() : "item").join(",")+"]";
-}
+
 Image.compile = function compile (element)
 {
     const args = getArguments(element);
@@ -43,14 +40,7 @@ Image.compile = function compile (element)
     const type = Array.isArray(element) ? "array" : typeof element;
 
     if (type === "array")
-    {
-        const x = [].concat(...element.map(compile));
-
-        console.log("RESULT: " + x.print());
-        console.log(x[0]);
-
-        return x;
-}
+        return [].concat(...element.map(compile));
 
     if (type !== "function")
         throw Error(`Unexpected ${type} when evaluating isx.`);
@@ -70,7 +60,7 @@ Image[ConstructorSymbol] = function (element)
         throw Error("Image must have a context property.");
 
     const compiled = List(ImageChild)(Image.compile(children))
-        .groupBy(child => is(Image, child) ? "images" : (console.log("IT WAS A"+child+Array.isArray(child)),"instructions"));
+        .groupBy(child => is(Image, child) ? "images" : "instructions");
     const subImages = Set(Image)(compiled.get("images", List(Image)()));
     const instructions = compiled.get("instructions", List(Function)());
 

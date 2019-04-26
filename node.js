@@ -1,15 +1,11 @@
-const Image = require("./image");
+const image = require("./image");
 
 const node =
 {
     keys: () => <run>{keys}</run>,
 
-    install: ({ version = "10.15.0", destination }) =>
-    [
-        <Image
-            tag = { `build-stage-download-node-${version}` }
-            from = "buildpack-deps:jessie"
-            workspace = { "." } >
+    image: ({ version }) =>
+        <image from = "buildpack-deps:jessie" >
             <node.keys/>
             <run>
                 {[
@@ -19,9 +15,15 @@ const node =
                     `grep " node-v${version}-linux-x64.tar.xz\\$" SHASUMS256.txt | sha256sum -c -`
                 ].join(" && ")}
             </run>
-        </Image>
-    ]
+        </image>,
+
+    install: ({ version, destination = "/usr/local" }) =>
+        <add    from = { <node.image veresion = { version } /> }
+                source = "node-v${version}-linux-x64.tar.xz"
+                destination = { destination } />
 }
+
+
 
 module.exports = node;
 

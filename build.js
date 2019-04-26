@@ -1,7 +1,7 @@
-const { is, Maybe, string } = require("@algebraic/type");
+const { is, Maybe, union, string, getUnscopedTypename } = require("@algebraic/type");
 const { List } = require("@algebraic/collections");
-const Image = require("./image");
-const primitives = require("./primitives");
+const image = require("./image");
+const instruction = require("./instruction");
 
 const stdio = ["inherit", "inherit", "inherit"];
 const spawn = require("@await/spawn");
@@ -15,7 +15,7 @@ module.exports = async function build({ filename, push, sequential }, properties
     const fImages = List(Function)([]
         .concat(typeof result === "function" ?
             result(properties) : result));
-    const images = fImages.map(fImage => Image.compile(fImage));
+    const images = fImages.map(fImage => image.compile(fImage));
 console.log(images);
 /*
     await each(async image =>
@@ -102,10 +102,10 @@ function FIXME_registerGenericJSX()
         plugins:[require("@generic-jsx/babel-plugin")]
     });
 
-    global.Image = Image;
+    global.image = image;
 
-    for (const key of Object.keys(primitives))
-        global[key] = primitives[key];
+    for (const type of union.components(instruction))
+        global[getUnscopedTypename(type)] = type;
 
     global.node = require("./node");
 }

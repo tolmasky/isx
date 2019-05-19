@@ -5,7 +5,7 @@ const node =
     keys: () => <run>{keys}</run>,
 
     image: ({ version }) =>
-        <image from = "buildpack-deps:jessie" >
+        <image tag = { `node-${version}` } from = "buildpack-deps:jessie" >
             <node.keys/>
             <run>
                 {[
@@ -18,7 +18,7 @@ const node =
         </image>,
 
     install: ({ version, destination = "/usr/local" }) =>
-        <add    from = { <node.image veresion = { version } /> }
+        <add    from = { <node.image version = { version } /> }
                 source = "node-v${version}-linux-x64.tar.xz"
                 destination = { destination } />
 }

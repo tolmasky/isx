@@ -68,7 +68,4 @@ function fromChildren(key)
     }
 }
 
-//for (const instruction of Object.values(functions))
-//    instruction[ConstructorSymbol] = instruction => instruction;
-
 module.exports = instruction;

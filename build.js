@@ -5,6 +5,8 @@ const instruction = require("./instruction");
 
 const stdio = ["inherit", "inherit", "inherit"];
 const spawn = require("@await/spawn");
+const getChecksum = require("./get-checksum");
+const Status = require("./build-status");
 
 
 module.exports = async function build({ filename, push, sequential }, properties)
@@ -16,7 +18,10 @@ module.exports = async function build({ filename, push, sequential }, properties
         .concat(typeof result === "function" ?
             result(properties) : result));
     const images = fImages.map(fImage => image.compile(fImage));
-console.log(images);
+    
+    console.log(Status.initialStatusOfImage(images.get(0)));
+
+    //console.log(getChecksum(image, images.get(0)));
 /*
     await each(async image =>
     {

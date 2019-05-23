@@ -3,6 +3,7 @@ const { base, getArguments } = require("generic-jsx");
 
 const image = () => require("./image");
 const { Optional, None } = require("./optional");
+const type = record => (Object.getPrototypeOf(record).constructor);
 
 
 const instruction = union `instruction` (
@@ -42,6 +43,33 @@ const instruction = union `instruction` (
     data `volume` (
         name        => string )
 );
+
+instruction.render = function (instruction)
+{
+    return type(instruction).render(instruction);
+}
+
+const insert = instruction => ({ from, source, destination }) =>
+    `${instruction} ${from === None ? None : `--from ${from} `}` +
+    `${source} ${destination}`;
+
+instruction.add.render = insert("ADD");
+instruction.copy.render = insert("COPY");
+instruction.cmd.render = ({ command }) => `CMD ${command}`;
+
+instruction.env.render = ({ key, value }) => `ENV ${key}=${JSON.stringify(value)}`;
+
+instruction.expose.render = ({ port }) => `EXPORT ${port}`;
+instruction.label.render = ({ name }) => `LABEL ${name}`;
+
+instruction.user.render = ({ name }) => `USER ${name}`;
+instruction.run.render = ({ PATH, command }) =>
+    `RUN ${PATH === None ? command : `PATH=${PATH} && ${command}`}`;
+
+instruction.workdir.render = ({ name }) => `WORKDIR ${name}`;
+
+instruction.user.render = ({ name }) => `USER ${name}`;
+instruction.volume.render = ({ name }) => `VOLUME ${name}`;
 
 instruction.add.fromXML =
 instruction.copy.fromXML = function (element)

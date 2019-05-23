@@ -2,14 +2,20 @@ const { is, data, string, union, Maybe } = require("@algebraic/type");
 const { List, Map, Set } = require("@algebraic/collections");
 const { base, getArguments } = require("generic-jsx");
 const { Optional, None } = require("./optional");
-const instruction = require("./instruction");
+const Instruction = require("./instruction");
 
 const image = data `image` (
     from            => string,
     tags            => [List(string), List(string)()],
     workspace       => Optional(string),
-    instructions    => List(instruction) );
+    instructions    => List(Instruction) );
 
+
+image.render = image =>
+[
+    `from ${image.from}`,
+    ...image.instructions.map(Instruction.render)
+].join("\n");
 
 image.compile = function compile (element)
 {
@@ -44,7 +50,7 @@ image.fromXML = function (element)
         throw Error("<image> must have a from property.");
 
     const tags = List(string)((args.tags || []).concat(args.tag || []));
-    const instructions = List(instruction)(image.compile(args.children));
+    const instructions = List(Instruction)(image.compile(args.children));
 
     return image({ from, tags, workspace, instructions });
 }

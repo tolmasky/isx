@@ -8,6 +8,7 @@ const spawn = require("@await/spawn");
 const getChecksum = require("./get-checksum");
 const Status = require("./build-status");
 const getType = object => Object.getPrototypeOf(object).constructor;
+const toPromise = require("@cause/cause/to-promise");
 
 
 module.exports = async function build({ filename, push, sequential }, properties)
@@ -19,8 +20,12 @@ module.exports = async function build({ filename, push, sequential }, properties
         .concat(typeof result === "function" ?
             result(properties) : result));
     const images = fImages.map(fImage => image.compile(fImage));
-    
-    console.log(toString(0)(Status.initialStatusOfImage(images.get(0)).status));
+    const status = Status.initialStatusOfImage(images.get(0)).status
+
+
+    console.log(toString(0)(status));
+
+    toPromise(Status, status);
     //console.log(Status.initialStatusOfImage(images.get(0)));
 
     //console.log(getChecksum(image, images.get(0)));
@@ -31,12 +36,12 @@ module.exports = async function build({ filename, push, sequential }, properties
         const tmp = `${require("os").tmpdir()}/`;
         const DockerfilePath = `${mkdtempSync(tmp)}/Dockerfile`;
         const DockerfileContents = Image.render(image);
-    
+
         writeFileSync(DockerfilePath, DockerfileContents, "utf-8");
 
         const { buildContext } = image;
         const includes = buildContext.filenames.push(DockerfilePath).join("\n");
-    
+
         const steps =
         [
             `printf "${includes}"`,
@@ -68,7 +73,10 @@ function toString(indent)
         const name = getUnscopedTypename(getType(status));
         const spaces = Array.from({ length: indent * 2 }, () => " ").join("");
         const children = dependencies.map(toString(indent + 1)).join("\n");
-        const rest = children && `\n${children}`;
+        var rest = children && `\n${children}`;
+
+        if (status.buildProcess)
+            rest+= `\n${spaces}[${status.buildProcess}]`;
 
         return `${spaces}${name} (${image.tags.get(0)})${rest}`;
     }

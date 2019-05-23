@@ -1,8 +1,14 @@
-const { is, data, union } = require("@algebraic/type");
+const { is, data, union, tundefined, number, string } = require("@algebraic/type");
 const { List, Set } = require("@algebraic/collections");
 const { copy, add } = require("./instruction");
 const { None } = require("./optional");
 const Image = require("./image");
+const Optional = require("./optional");
+
+const Process = require("@cause/process");
+const Cause = require("@cause/cause");
+const update = require("@cause/cause/update");
+
 
 
 const Status = union `Status` (
@@ -12,7 +18,8 @@ const Status = union `Status` (
 
     data `Ready` (
         image           => Image,
-        dependencies    => List(Status.Built) ),
+        dependencies    => List(Status.Built),
+        buildProcess    => Process ),
 
     data `Blocked` (
         image           => Image,
@@ -22,10 +29,32 @@ const Status = union `Status` (
         image           => Image,
         dependencies    => List(Status.Built) ) );
 
+const Built = data `Built` ();
+
+Status.Ready.update = update
+    .on(Cause(number).Completed.Succeeded, (ready, event) =>
+        [Status.Built(ready), [Built]]);
+
+Status.Blocked.update = update
+    .on(Cause.Start, (blocked, event) =>
+    {
+        console.log("HERE!");
+        return [blocked, []];
+    })
+    .on(Built, (blocked, event, fromKeyPath) =>
+    (console.log("HERE! " + blocked.dependencies.every(dependency => is(NotBuilt, dependency)) + " " + fromKeyPath),
+        blocked.dependencies.some(dependency => is(NotBuilt, dependency)) ?
+            blocked :
+            Status.Ready({ ...blocked, buildProcess: toBuildProcess(blocked.image) })));
+
+
+
 const NotBuilt = union `NotBuilt` (
     Status.Ready,
     Status.Blocked,
     Status.Failed )
+
+
 
 
 Status.initialStatusOfImage = function (image)
@@ -47,9 +76,89 @@ Status.initialStatusOfImage = function (image)
 
     const status = hasDependencies ?
         Status.Blocked({ image, dependencies }) :
-        Status.Ready({ image, dependencies });
+        Status.Ready({ image, dependencies,
+            buildProcess: toBuildProcess(image) });
 
     return { status, ready: hasDependencies ? ready : ready.add(status) };
 }
 
 module.exports = Status;
+
+
+function toBuildProcess(image)
+{
+    // FIXME: Move to command too?
+    const { mkdtempSync, writeFileSync } = require("fs");
+    const tmp = `${require("os").tmpdir()}/`;
+    const DockerfilePath = `${mkdtempSync(tmp)}/Dockerfile`;
+    const DockerfileContents = Image.render(image);
+console.log(DockerfileContents);
+    writeFileSync(DockerfilePath, DockerfileContents, "utf-8");
+
+    const command = "sh";
+    const { buildContext } = image;
+    const includes = List(string)().push(DockerfilePath).join("\n");
+    const steps =
+    [
+        `printf "${includes}"`,
+        `gtar -cv --transform=s,${DockerfilePath},Dockerfile, --absolute-names --show-transformed-names --files-from - `,
+        toBuildCommand(image, "Dockerfile")
+    ].join(" | ")
+    const cwd = image.workspace === Optional.None ?
+        process.cwd() : image.workspace;
+
+    return Process.start("sh", ["-c", steps], cwd);
+}
+
+function command(...args)
+{
+    return args.join(" ");
+}
+
+function toBuildCommand(image, path)
+{
+    const flags =
+    [
+//        image.socket !== Maybe(string).Nothing && `-H ${image.socket}`,
+//        ...image.dockerArguments
+    ].filter(flag => !!flag).join(" ");
+    const buildFlags =
+    [
+        `-f ${path}`,
+        ...image.tags.map(tag => `-t ${tag}`)
+    ].filter(flag => !!flag).join(" ");
+
+    return `docker ${flags} build ${buildFlags} -`;
+}
+
+/*
+const Waiting = data `Waiting` (
+
+    )
+
+const Building = data `Building` (
+    image   => image,
+    docker  => Worker.Running,
+    update  => update(Building,
+        on => (Message, (building, event) =>
+            BLAH),
+        on => (Message, (building, event) =>
+            BLAH) ) );
+
+Building.from = image => fromAsync();
+
+Building.update = cause (
+    on => [SomeEvent, "docker"], (building, e) =>
+        Failed,
+    on => [SomeEvent, "docker"], (building, e) =>
+        Succeeded );
+
+
+const Building = cause `` data `Building` (
+    image   => image,
+    docker  => Worker.Running,
+    update  => update(Building,
+        on => (Message, (building, event) =>
+            BLAH),
+        on => (Message, (building, event) =>
+            BLAH) ) );    */

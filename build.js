@@ -20,8 +20,7 @@ module.exports = async function build({ filename, push, sequential }, properties
         .concat(typeof result === "function" ?
             result(properties) : result));
     const images = fImages.map(fImage => image.compile(fImage));
-    const status = Status.initialStatusOfImage(images.get(0)).status
-
+    const status = Status.fromImage(images.get(0));
 
     console.log(toString(0)(status));
 

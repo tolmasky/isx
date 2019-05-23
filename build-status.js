@@ -1,9 +1,10 @@
-const { is, data, union, tundefined, number, string } = require("@algebraic/type");
+const { is, data, union, tundefined, number, string, serialize } = require("@algebraic/type");
 const { List, Set } = require("@algebraic/collections");
 const { copy, add } = require("./instruction");
 const { None } = require("./optional");
 const Image = require("./image");
 const Optional = require("./optional");
+const getChecksum = require("./get-checksum");
 
 const Process = require("@cause/process");
 const Cause = require("@cause/cause");
@@ -57,32 +58,25 @@ const NotBuilt = union `NotBuilt` (
 
 
 
-Status.initialStatusOfImage = function (image)
+
+
+module.exports = Status;
+
+Status.fromImage = function fromImage(image)
 {
     const hasDependency = instruction =>
         (is(copy, instruction) || is(add, instruction)) &&
         instruction.from !== None;
-    const { ready, dependencies } = image.instructions
-        .map(instruction => hasDependency(instruction) && instruction.from)
-        .filter(dependency => !!dependency)
-        .reduce((accum, dependency) =>
-            (({ status, ready }) =>
-                ({
-                    dependencies: accum.dependencies.push(status),
-                    ready: accum.ready.union(ready)
-                }))(Status.initialStatusOfImage(dependency)),
-            { ready: Set(Status)(), dependencies: List(Status)() });
+    const dependencies = image.instructions
+        .filter(hasDependency)
+        .map(instruction => fromImage(instruction.from));
     const hasDependencies = dependencies.size > 0;
 
-    const status = hasDependencies ?
+    return hasDependencies ?
         Status.Blocked({ image, dependencies }) :
         Status.Ready({ image, dependencies,
             buildProcess: toBuildProcess(image) });
-
-    return { status, ready: hasDependencies ? ready : ready.add(status) };
 }
-
-module.exports = Status;
 
 
 function toBuildProcess(image)
@@ -125,40 +119,38 @@ function toBuildCommand(image, path)
     const buildFlags =
     [
         `-f ${path}`,
-        ...image.tags.map(tag => `-t ${tag}`)
+        ...image.tags.map(tag => `-t ${tag}`),
+        `-t tracking:${image.checksum}`
     ].filter(flag => !!flag).join(" ");
 
     return `docker ${flags} build ${buildFlags} -`;
 }
 
+
 /*
-const Waiting = data `Waiting` (
 
-    )
+Status.initialStatusOfImage = function (image)
+{
+    const hasDependency = instruction =>
+        (is(copy, instruction) || is(add, instruction)) &&
+        instruction.from !== None;
+    const { ready, dependencies } = image.instructions
+        .map(instruction => hasDependency(instruction) && instruction.from)
+        .filter(dependency => !!dependency)
+        .reduce((accum, dependency) =>
+            (({ status, ready }) =>
+                ({
+                    dependencies: accum.dependencies.push(status),
+                    ready: accum.ready.union(ready)
+                }))(Status.initialStatusOfImage(dependency)),
+            { ready: Set(Status)(), dependencies: List(Status)() });
+    const hasDependencies = dependencies.size > 0;
 
-const Building = data `Building` (
-    image   => image,
-    docker  => Worker.Running,
-    update  => update(Building,
-        on => (Message, (building, event) =>
-            BLAH),
-        on => (Message, (building, event) =>
-            BLAH) ) );
+    const status = hasDependencies ?
+        Status.Blocked({ image, dependencies }) :
+        Status.Ready({ image, dependencies,
+            buildProcess: toBuildProcess(image) });
 
-Building.from = image => fromAsync();
-
-Building.update = cause (
-    on => [SomeEvent, "docker"], (building, e) =>
-        Failed,
-    on => [SomeEvent, "docker"], (building, e) =>
-        Succeeded );
-
-
-const Building = cause `` data `Building` (
-    image   => image,
-    docker  => Worker.Running,
-    update  => update(Building,
-        on => (Message, (building, event) =>
-            BLAH),
-        on => (Message, (building, event) =>
-            BLAH) ) );    */
+    return { status, ready: hasDependencies ? ready : ready.add(status) };
+}
+*/

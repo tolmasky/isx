@@ -50,7 +50,7 @@ instruction.render = function (instruction)
 }
 
 const insert = instruction => ({ from, source, destination }) =>
-    `${instruction} ${from === None ? None : `--from ${from} `}` +
+    `${instruction} ${from === None ? None : `--from ${from.checksum} `}` +
     `${source} ${destination}`;
 
 instruction.add.render = insert("ADD");

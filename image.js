@@ -3,8 +3,10 @@ const { List, Map, Set } = require("@algebraic/collections");
 const { base, getArguments } = require("generic-jsx");
 const { Optional, None } = require("./optional");
 const Instruction = require("./instruction");
+const getChecksum = require("./get-checksum");
 
 const image = data `image` (
+    checksum        => string,
     from            => string,
     tags            => [List(string), List(string)()],
     workspace       => Optional(string),
@@ -51,8 +53,10 @@ image.fromXML = function (element)
 
     const tags = List(string)((args.tags || []).concat(args.tag || []));
     const instructions = List(Instruction)(image.compile(args.children));
+    const withoutChecksum = image({ from, tags, workspace, instructions, checksum:"" });
+    const checksum = getChecksum(image, withoutChecksum);
 
-    return image({ from, tags, workspace, instructions });
+    return image({ ...withoutChecksum, checksum });
 }
 
 module.exports = image;

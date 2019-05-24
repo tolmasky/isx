@@ -9,6 +9,7 @@ function getChecksum(type, object)
     const kind = getKind(type);
 
     return  parameterized.is(List, type) ? getListChecksum(type, object) :
+            parameterized.is(Map, type) ? getMapChecksum(type, object) :
             kind === data ? getDataChecksum(type, object) :
             kind === union ? getUnionChecksum(type, object) :
             kind === primitive ? getPrimitiveChecksum(type, object) :
@@ -44,6 +45,17 @@ function getListChecksum(type, value)
     const [parameter] = parameterized.parameters(type);
 
     return value.map(value => getChecksum(parameter, value));
+}
+
+function getMapChecksum(type, value)
+{
+    const [keyType, valueType] = parameterized.parameters(type);
+    const items = value
+        .map((key, value) =>
+            [getChecksum(keyType, key), getChecksum(valueType, value)])
+        .toObject();
+
+    return `Map:${getSha512({ items })}`;
 }
 
 function getSha512(value)

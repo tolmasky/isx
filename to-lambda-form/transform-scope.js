@@ -22,21 +22,9 @@ module.exports = require("./map-accum-node").fromDefinitions(
         return [scope, mapped];
     },
 
-    FunctionDeclaration(mapAccumNode, node)
-    {
-        const [bodyScope, body] = mapAccumNode(node.body);
-        const [idScope, id] = fromPattern(node.id);
-        const [parametersScope, nodeWithModifiedParameters] =
-            fromArrayFieldPattern(mapAccumNode, node, "params");
-        const scope = [bodyScope, idScope, parametersScope]
-            .reduce(Scope.concat, Scope.identity);
-        const mapped = ifChanged(nodeWithModifiedParameters, { body, id });
-
-        return [scope, mapped];
-    },
-
-    FunctionExpression,
-    ArrowFunctionExpression: FunctionExpression,
+    FunctionDeclaration: fromFunction(false),
+    FunctionExpression: fromFunction(true),
+    ArrowFunctionExpression: fromFunction(true),
  
     BlockStatement(mapAccumNode, node)
     {
@@ -48,20 +36,25 @@ module.exports = require("./map-accum-node").fromDefinitions(
     }
 });
 
-function FunctionExpression(mapAccumNode, node)
+function fromFunction(isExpression)
 {
-    const [bodyScope, body] = mapAccumNode(node.body);
-    const [idScope, id] = fromPattern(mapAccumNode, node.id);
-    const [parametersScope, nodeWithModifiedParameters] =
-        fromArrayFieldPattern(mapAccumNode, node, "params");
-    const scopeWithIdScope = [bodyScope, idScope, parametersScope]
-        .reduce(Scope.concat, Scope.identity);
-    const scope = !id ? 
-        scopeWithIdScope :
-        Scope({ ...scopeWithIdScope, bound: scopeWithIdScope.bound.remove(id.name) });
-    const mapped = ifChanged(nodeWithModifiedParameters, { body, id });
+    return function (mapAccumNode, node)
+    {
+        const [bodyScope, body] = mapAccumNode(node.body);
+        const [idScope, id] = fromPattern(mapAccumNode, node.id);
+        const [parametersScope, nodeWithModifiedParameters] =
+            fromArrayFieldPattern(mapAccumNode, node, "params");
+        const { free } = [bodyScope, idScope, parametersScope]
+            .reduce(Scope.concat, Scope.identity);
 
-    return [scope, mapped];
+        // Function expresses don't expose any bound variables, since even if
+        // they have an id, its only visible internally.
+        const bound = isExpression ? idScope.bound : Scope.identity.bound;
+        const scope = Scope({ bound, free });
+        const mapped = ifChanged(nodeWithModifiedParameters, { body, id });
+
+        return [scope, mapped];
+    }
 }
     
 function fromPattern(mapAccumNode, pattern)

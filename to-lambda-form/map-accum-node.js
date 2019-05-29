@@ -27,12 +27,15 @@ module.exports = function mapAccumNode({ concat, identity }, fOrDefinitions)
     }
 }
 
-module.exports.fromDefinitions = function fromDefinitions(definitions)
+module.exports.fromDefinitions = function fromDefinitions(definitions, fallback)
 {
     return function f(mapAccumNode, node)
     {
         if (definitions[node.type])
             return definitions[node.type](mapAccumNode, node);
+
+        if (fallback)
+            return fallback(mapAccumNode, node);
 
         const fields = t.VISITOR_KEYS[node.type];
         const children = fields.map(field => node[field]);

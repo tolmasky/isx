@@ -51,7 +51,7 @@ module.exports = require("./map-accum-node").fromDefinitions(
 function FunctionExpression(mapAccumNode, node)
 {
     const [bodyScope, body] = mapAccumNode(node.body);
-    const [idScope, id] = fromPattern(node.id);
+    const [idScope, id] = fromPattern(mapAccumNode, node.id);
     const [parametersScope, nodeWithModifiedParameters] =
         fromArrayFieldPattern(mapAccumNode, node, "params");
     const scopeWithIdScope = [bodyScope, idScope, parametersScope]
@@ -84,7 +84,7 @@ function fromPattern(mapAccumNode, pattern)
     if (type === "ArrayPattern")
         return fromArrayFieldPattern(mapAccumNode, pattern, "elements");
 
-    if (type === "ArrayPattern")
+    if (type === "ObjectPattern")
         return fromArrayFieldPattern(mapAccumNode, pattern, "properties");
 
     if (type === "ObjectProperty")
@@ -97,7 +97,11 @@ function fromPattern(mapAccumNode, pattern)
     }
 
     if (type === "RestElement")
-        return fromPattern(mapAccumNode, pattern.argument);
+    {
+        const [scope, argument] = fromPattern(mapAccumNode, pattern.argument);
+
+        return [scope, ifChanged(pattern, { argument })];
+    }
 
     if (type === "Identifier")
         return [Scope.fromBound(pattern.name), pattern];

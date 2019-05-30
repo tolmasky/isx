@@ -13,25 +13,35 @@ const toLambdaForm = require("./map-accum-node").fromDefinitions(
                 .flatMap(node => node.type === "VariableDeclaration" ?
                     node.declarations : node)
                 .map(mapAccumNode));
-        const blockScope = declarations.reduce((lhs, rhs) =>
-            Scope.concat(lhs, rhs[0]), Scope.identity);
-        const [passed, rejected] = partition(([scope]) =>
-            scope.free.some(variable => blockScope.bound.has(variable)),
-            declarations);
-
-        const scope = Scope.concat(returnPair[0], blockScope);
-        console.log(passed.map(([, { id }]) => id.elements));
-        const fCallExpression = t.CallExpression(
-            t.ArrowFunctionExpression(
-                passed.map(([, { id }]) => id),
-                returnPair[1].argument),
-            passed.map(([, { init }]) => init));
+        const scope = declarations.reduce(
+            (lhs, rhs) => Scope.concat(lhs, rhs[0]),
+            returnPair[0]);
+        const fCallExpression =
+            fromDeclarations(declarations, returnPair[1].argument);
         const lambdaForm = t.blockStatement(
             [t.returnStatement(fCallExpression)]);
 
         return [scope, lambdaForm];
     }
 }, transformScope);
+
+function fromDeclarations(declarations, returnExpression)
+{
+    const combinedScope = declarations.reduce((lhs, rhs) =>
+        Scope.concat(lhs, rhs[0]), Scope.identity);
+    const [dependent, independent] = partition(([scope]) =>
+        scope.free.some(variable => combinedScope.bound.has(variable)),
+        declarations);
+    const nestedExpression = dependent.length === 0 ?
+        returnExpression :
+        fromDeclarations(dependent, returnExpression);
+
+    return t.CallExpression(
+        t.ArrowFunctionExpression(
+            independent.map(([, { id }]) => id),
+            nestedExpression),
+        independent.map(([, { init }]) => init));
+}
 
 function partition(f, list)
 {

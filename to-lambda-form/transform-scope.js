@@ -5,7 +5,7 @@ const ifChanged = (node, changes) =>
         { ...node, ...changes } : node;
 
 
-module.exports = require("./map-accum-node").fromDefinitions(
+module.exports = require("@climb/babel-map-accum").fromDefinitions(
 {
     Identifier(mapAccumNode, node)
     {

@@ -3,7 +3,11 @@ const t = require("@babel/types");
 const { parseExpression } = require("@babel/parser");
 const transformScope = require("./transform-scope");
 
-const toLambdaForm = require("./map-accum-node").fromDefinitions(
+const { string } = require("@algebraic/type");
+const { Set } = require("@algebraic/collections");
+
+
+const toLambdaForm = require("@climb/babel-map-accum").fromDefinitions(
 {
     BlockStatement(mapAccumNode, node)
     {
@@ -54,12 +58,21 @@ function partition(f, list)
     return [filtered, rejected];
 }
 
-module.exports = function (f)
+module.exports = function (f, free)
 {
     const { default: generate } = require("@babel/generator");
     const AST = parseExpression(`(${f})`);
-    const [, transformed] = require("./map-accum-node")(Scope, toLambdaForm)(AST);
+    const [scope, transformed] = require("@climb/babel-map-accum")(Scope, toLambdaForm)(AST);
 
-    return generate(transformed).code;
+    const parameters = Object.keys(free || { });
+    const missing = scope.free.subtract(parameters);
+
+    if (missing.size > 0)
+        throw Error("Missing values for " + missing.join(", "));
+
+    const code = `return ${generate(transformed).code}`;
+    const args = parameters.map(parameter => free[parameter]);
+
+    return (new Function(...parameters, code))(...args);
 }
 

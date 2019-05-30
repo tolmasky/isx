@@ -1,20 +1,13 @@
 const { data, string } = require("@algebraic/type");
 const { List, Map, Set } = require("@algebraic/collections");
 const getChecksum = require("./get-checksum");
+const toLambdaForm = require("./to-lambda-form/to-lambda-form");
+//const pooled = require("./pooled");
 
 
 const Source = data `Source` (
     checksum    => string,
     checksums   => Map(string, string) );
-
-const toSource = function (patterns, workspace)
-{
-    const filenames = getFilenames(patterns, workspace);
-    const checksums = getChecksums(filenames);
-    const checksum = getChecksum(Map(string, string), checksums);
-
-    return Source({ checksum, checksums });
-}
 
 const getFilenames = (function ()
 {
@@ -24,7 +17,7 @@ const getFilenames = (function ()
         path.resolve(workspace,
             pattern.startsWith("/") ? pattern.substr(1) : pattern);
 
-    return function getFilenames(workspace, patterns)
+    return toLambdaForm(function getFilenames(workspace, patterns)
     {
         const ignore = [];//["**/node_modules/"];
         const include = patterns.map(resolve(workspace));
@@ -43,7 +36,7 @@ const getFilenames = (function ()
             .toList()
             .sort()
             .map(filename => path.relative(workspace, filename));
-    }
+    }, { glob, resolve, Set, string, path, List, console });
 })();
 
 const getChecksums = (function ()
@@ -55,7 +48,7 @@ const getChecksums = (function ()
     const args = platform === "darwin" ? ["-a", "256"] : [];
     const ShasumRegExp = /([a-z0-9]{64})\s{2}([^\n]+)\n/g;
 
-    return function getChecksums(filenames)
+    return toLambdaForm(function getChecksums(filenames)
     {
         const { stdout } = spawn(command, [...args, ...filenames]);
         const [...matches] = stdout.toString().matchAll(ShasumRegExp);
@@ -63,13 +56,23 @@ const getChecksums = (function ()
             .map(([, checksum, filename]) => [filename, checksum]);
 
         return Map(string, string)(pairs);
-    }
+    }, { Map, string, spawn, platform, command, args, ShasumRegExp });
 })();
+
+const toSource = toLambdaForm(function toSource(workspace, patterns)
+{
+    const filenames = getFilenames(workspace, patterns);
+    const checksums = getChecksums(filenames);
+    const checksum = getChecksum(Map(string, string), checksums);
+
+    return Source({ checksum, checksums });
+}, { getChecksums, getFilenames, getChecksum, Source, Map, string, console });
 
 const start = Date.now();
 const result = toSource(process.cwd(), List(string)(["app/**/*.js"]));
 console.log(Date.now() - start);
 console.log(result);
+console.log(getFilenames(process.cwd(), List(string)(["app/**/*.js"])));
 
 /*function fromDockerignore(workspace)
 {

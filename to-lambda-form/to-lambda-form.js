@@ -1,33 +1,9 @@
-const Scope = require("./scope");
-const t = require("@babel/types");
-const { parseExpression } = require("@babel/parser");
-const transformScope = require("./transform-scope");
-
 const { string } = require("@algebraic/type");
 const { Set } = require("@algebraic/collections");
 
+const t = require("@babel/types");
+const Scope = require("./scope");
 
-const toLambdaForm = require("@climb/babel-map-accum").fromDefinitions(
-{
-    BlockStatement(mapAccumNode, node)
-    {
-        const [[returnPair], declarations] = partition(
-            ([, node]) => node.type === "ReturnStatement",
-            node.body
-                .flatMap(node => node.type === "VariableDeclaration" ?
-                    node.declarations : node)
-                .map(mapAccumNode));
-        const scope = declarations.reduce(
-            (lhs, rhs) => Scope.concat(lhs, rhs[0]),
-            returnPair[0]);
-        const fCallExpression =
-            fromDeclarations(declarations, returnPair[1].argument);
-        const lambdaForm = t.blockStatement(
-            [t.returnStatement(fCallExpression)]);
-
-        return [scope, lambdaForm];
-    }
-}, transformScope);
 
 function fromDeclarations(declarations, returnExpression)
 {
@@ -39,6 +15,9 @@ function fromDeclarations(declarations, returnExpression)
     const nestedExpression = dependent.length === 0 ?
         returnExpression :
         fromDeclarations(dependent, returnExpression);
+
+    if (independent.length === 0)
+        return returnExpression;
 
     return t.CallExpression(
         t.ArrowFunctionExpression(
@@ -60,9 +39,8 @@ function partition(f, list)
 
 module.exports = function (f, free)
 {
-    const { default: generate } = require("@babel/generator");
-    const AST = parseExpression(`(${f})`);
-    const [scope, transformed] = require("@climb/babel-map-accum")(Scope, toLambdaForm)(AST);
+    const { parseExpression } = require("@babel/parser");
+    const [scope, transformed] = fromAST(parseExpression(`(${f})`));
 
     const parameters = Object.keys(free || { });
     const missing = scope.free.subtract(parameters);
@@ -70,9 +48,46 @@ module.exports = function (f, free)
     if (missing.size > 0)
         throw Error("Missing values for " + missing.join(", "));
 
+    const { default: generate } = require("@babel/generator");
     const code = `return ${generate(transformed).code}`;
     const args = parameters.map(parameter => free[parameter]);
 
     return (new Function(...parameters, code))(...args);
 }
+
+const fromAST = (function ()
+{
+    const transformScope = require("./transform-scope");
+    const babelMapAccum = require("@climb/babel-map-accum");
+
+    const toLambdaFormEach = babelMapAccum.fromDefinitions(
+    {
+        BlockStatement(mapAccumNode, node)
+        {
+            const [[returnPair], declarations] = partition(
+                ([, node]) => node.type === "ReturnStatement",
+                node.body
+                    .flatMap(node => node.type === "VariableDeclaration" ?
+                        node.declarations : node)
+                    .map(mapAccumNode));
+            const scope = declarations.reduce(
+                (lhs, rhs) => Scope.concat(lhs, rhs[0]),
+                returnPair[0]);
+            const fCallExpression =
+                fromDeclarations(declarations, returnPair[1].argument);
+            const lambdaForm = t.blockStatement(
+                [t.returnStatement(fCallExpression)]);
+    
+            return [scope, lambdaForm];
+        }
+    }, transformScope);
+
+    return function fromAST(fAST)
+    {
+        return babelMapAccum(Scope, toLambdaFormEach)(fAST);
+    }
+})();
+
+module.exports.fromAST = fromAST;
+
 

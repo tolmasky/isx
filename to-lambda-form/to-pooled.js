@@ -14,8 +14,8 @@ const { default: generate } = require("@babel/generator");
 module.exports = function (symbol, f, free)
 {
     const { parseExpression } = require("@babel/parser");
-    const [paths, transformed] = fromAST(symbol, parseExpression(`(${f})`));
-    const [, inserted] = insert(0, paths, transformed);
+    const [paths, transformed] = fromAST(symbol, parseExpression(`(${f})`));    
+    const inserted = wrap(paths, transformed);
     const code = `return ${generate(inserted).code}`;
 
     return (new Function(code))();
@@ -58,6 +58,17 @@ DependencyPath.Parent.prototype.toString = function ()
     return children.size === 1 ? children.get(0) : `[${children.join(" , ")}]`;
 }
 
+DependencyPath.wrap = function (keyPath, path = DependencyPath.Root)
+{
+    if (path === OptionalDependencyPath.None)
+        return OptionalDependencyPath.None;
+    
+    return (Array.isArray(keyPath) ? keyPath : [keyPath])
+        .reduceRight((path, key) =>
+            DependencyPath.Parent({ ...path, children: DependencyPathMap([[key, path]]) }),
+            path);
+}
+
 OptionalDependencyPath.identity = OptionalDependencyPath.None;
 OptionalDependencyPath.concat = (lhs, rhs, key) =>
     rhs === OptionalDependencyPath.identity ? lhs :
@@ -69,6 +80,11 @@ OptionalDependencyPath.concat = (lhs, rhs, key) =>
         children: lhs.children.set(key, rhs)
     });
 
+function hasDependencies(path)
+{
+    return path !== OptionalDependencyPath.None;
+}
+
 function fromAST(symbol, fAST)
 {
     return babelMapAccum(OptionalDependencyPath, babelMapAccum.fromDefinitions(
@@ -78,10 +94,50 @@ function fromAST(symbol, fAST)
             if (expression.callee.name === symbol)
                 return [DependencyPath.Root, expression];
 
-            return mapAccumNode.fallback(mapAccumNode, expression);
+            // actually if part of callee's parameters...
+            const [calleeDependencies, callee] =
+                expression.callee.type === "Identifier" ?
+                    expression.callee.name === symbol ?
+                        [DependencyPath.Root, expression.callee] :
+                        [OptionalDependencyPath.None, expression.callee] :
+                    mapAccumNode(expression.callee);
+            const [argumentsDependencies, arguments] = mapAccumNode(expression.arguments);
+            const updated = { ...expression, callee, arguments };
+
+            if (!hasDependencies(calleeDependencies))
+                return [DependencyPath.wrap("arguments", argumentsDependencies), updated];
+
+            if (!hasDependencies(argumentsDependencies)) 
+                return [DependencyPath.wrap("callee", calleeDependencies), updated];
+
+            const inserted = wrap(DependencyPath.wrap("arguments", argumentsDependencies), updated);
+console.log(inserted);
+console.log(generate(inserted).code+"");
+            return [DependencyPath.wrap("callee", calleeDependencies), inserted];
+            
+//            /*DependencyPath.wrap(["callee", "object", "arguments", 0], calleeDependencies)*/, inserted];
         }
     }))(toLambdaForm.fromAST(fAST)[1]);
 }
+
+const wrap = (function ()
+{
+    const { expression: template } = require("@babel/template");
+    const toImplicitlyPooledState = template(`
+        ImplicitlyPooledState(%%f%%).initialize(%%args%%)
+    `);
+
+    return (dependencies, node) =>
+    {
+        return insert(0, dependencies, node)[1];
+
+        return toImplicitlyPooledState(
+        {
+            f: insert(0, dependencies, node)[1],
+            args: []
+        });
+    }
+})();
 
 function insert(index, dependencies, node)
 {
@@ -93,7 +149,7 @@ function insert(index, dependencies, node)
 
     const entries = List(Object)(dependencies.children.entries()).toArray();
     const [newIndex, changes] = mapAccumArray(function (index, [field, dependencies])
-    {
+    {//console.log("doing ", node);
         const [newIndex, child] = insert(index, dependencies, node[field]);
  
         return [newIndex, [child, field]];

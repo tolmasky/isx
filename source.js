@@ -2,31 +2,75 @@ const { data, string } = require("@algebraic/type");
 const { List, Map, Set } = require("@algebraic/collections");
 const getChecksum = require("./get-checksum");
 const toLambdaForm = require("./to-lambda-form/to-lambda-form");
+const toPooled = require("./to-lambda-form/to-pooled");
+
 //const pooled = require("./pooled");
 
+/*console.log(toPooled("f", function test(x)
+{
+    return i(g(h(f(x), f(y))));
+}, { i:1,g:1,h:1,f:1}) + "");
+*/
+/*
+console.log(toLambdaForm(function test(f)
+{
+    const a = f(x);
+    const b = f(a);
+    
+    return i(a + b);
+}, { i:1, x: 20 }) + "");
 
+console.log(toPooled("f", function test(f)
+{
+    const a = g(x);
+    const b = f(a);
+    const c = f(x);
+    
+    return i(a + b);
+}, { i:1 }) + "");*/
+/*
+console.log(toLambdaForm(function test(f)
+{
+    const a = f(x);
+    const b = f(a);
+    
+    return i(a + b);
+}, { i:1, x: 10 }) + "");
+console.log(toPooled("f", function test(f)
+{
+    const a = f(x);
+    const b = f(a);
+    
+    return i(a + b);
+}, { i:1 }) + "");*/
+
+console.log(toPooled("f", (a, b) => f(a) + f(b)) + "");
+console.log(toPooled("f", (a, b) => i(f(a) + f(b))) + "");
+console.log(toPooled("f", (a, b) => f(a)(f(a) + f(b))) + "");
+
+return;
 const Source = data `Source` (
     checksum    => string,
     checksums   => Map(string, string) );
 
 const getFilenames = (function ()
 {
-    const glob = require("fast-glob");
+    const glob = require("fast-glob").sync;
     const path = require("path");
     const resolve = workspace => pattern =>
         path.resolve(workspace,
             pattern.startsWith("/") ? pattern.substr(1) : pattern);
 
-    return toLambdaForm(function getFilenames(workspace, patterns)
+    return toPooled("glob", function getFilenames(workspace, patterns)
     {
         const ignore = [];//["**/node_modules/"];
         const include = patterns.map(resolve(workspace));
-        const firstPass = glob.sync(
+        const firstPass = glob(
             include.toArray(),
             { ignore, onlyFiles: false, markDirectories: true });
         const grouped = List(string)(firstPass)
             .groupBy(path => path.endsWith("/") ? "directories" : "filenames");
-        const secondPass = glob.sync(grouped
+        const secondPass = glob(grouped
             .get("directories", List(string)())
             .map(path => `${path}**/*`).toArray(),
             { ignore });
@@ -68,11 +112,14 @@ const toSource = toLambdaForm(function toSource(workspace, patterns)
     return Source({ checksum, checksums });
 }, { getChecksums, getFilenames, getChecksum, Source, Map, string, console });
 
-const start = Date.now();
-const result = toSource(process.cwd(), List(string)(["app/**/*.js"]));
-console.log(Date.now() - start);
-console.log(result);
-console.log(getFilenames(process.cwd(), List(string)(["app/**/*.js"])));
+
+console.log("WHAT"+getFilenames+"");
+
+//const start = Date.now();
+//const result = toSource(process.cwd(), List(string)(["app/**/*.js"]));
+//console.log(Date.now() - start);
+//console.log(result);
+//console.log(getFilenames(process.cwd(), List(string)(["app/**/*.js"])));
 
 /*function fromDockerignore(workspace)
 {

@@ -94,6 +94,8 @@ function fromAST(symbol, fAST)
         {
             if (expression.callee.name === symbol)
                 return [DependencyPath.Root, expression];
+            
+            return mapAccumNode.fallback(mapAccumNode, expression);
 
             // actually if part of callee's parameters...
             const [calleeDependencies, callee] =

@@ -16,6 +16,7 @@ module.exports = function (symbol, f, free)
     const { parseExpression } = require("@babel/parser");
     const [paths, transformed] = fromAST(symbol, parseExpression(`(${f})`));    
     const inserted = wrap(paths, transformed);
+    console.log(`return ${generate(inserted).code}`);
     const code = `return ${generate(inserted).code}`;
 
     return (new Function(code))();
@@ -124,41 +125,45 @@ const wrap = (function ()
 {
     const { expression: template } = require("@babel/template");
     const toImplicitlyPooledState = template(`
-        ImplicitlyPooledState(%%f%%).initialize(%%args%%)
+        (%%parameters%%) =>
+            ImplicitlyPooledState(dependencies => %%f%%).initialize(%%args%%)
     `);
+    const valueToExpression = require("../value-to-expression");
 
     return (dependencies, node) =>
     {
-        return insert(0, dependencies, node)[1];
+        const [[, args], result] = insert([0, []], dependencies, node);
 
         return toImplicitlyPooledState(
         {
-            f: insert(0, dependencies, node)[1],
-            args: []
+            parameters: result.params,
+            f: result.body,
+            args: args
         });
     }
 })();
 
-function insert(index, dependencies, node)
+function insert(state, dependencies, node)
 {
     if (dependencies === OptionalDependencyPath.None)
-        return [index, node];
+        return [state, node];
 
     if (dependencies === DependencyPath.Root)
-        return [index + 1, t.memberExpression(t.identifier("dependencies"), t.numericLiteral(index), true)];
+        return [[state[0] + 1, [...state[1], node]],
+            t.memberExpression(t.identifier("dependencies"), t.numericLiteral(state[0]), true)];
 
     const entries = List(Object)(dependencies.children.entries()).toArray();
-    const [newIndex, changes] = mapAccumArray(function (index, [field, dependencies])
+    const [newState, changes] = mapAccumArray(function (state, [field, dependencies])
     {//console.log("doing ", node);
-        const [newIndex, child] = insert(index, dependencies, node[field]);
+        const [newState, child] = insert(state, dependencies, node[field]);
  
-        return [newIndex, [child, field]];
-    }, index, entries);
+        return [newState, [child, field]];
+    }, state, entries);
     const updated = changes.reduce(
         (node, [child, field]) => (node[field] = child, node),
         Array.isArray(node) ? [...node] : { ...node });
 
-    return [newIndex, updated];
+    return [newState, updated];
 }
 
 //DependentNode<Node>

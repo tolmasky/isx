@@ -2,7 +2,10 @@ const { data, string } = require("@algebraic/type");
 const { List, Map, Set } = require("@algebraic/collections");
 const getChecksum = require("./get-checksum");
 const toLambdaForm = require("./to-lambda-form/to-lambda-form");
-const toPooled = require("./to-lambda-form/to-pooled");
+const toPooled = require("./to-lambda-form/to-pooled-2");
+const fromAsync = require("@cause/cause/from-async");
+const Cause = require("@cause/cause");
+const toPromise = require("@cause/cause/to-promise");
 
 //const pooled = require("./pooled");
 
@@ -44,9 +47,103 @@ console.log(toPooled("f", function test(f)
     return i(a + b);
 }, { i:1 }) + "");*/
 
-console.log(toPooled("f", (a, b) => f(a) + f(b)) + "");
-console.log(toPooled("f", (a, b) => i(f(a) + f(b))) + "");
-console.log(toPooled("f", (a, b) => f(a)(f(a) + f(b))) + "");
+function show(f)
+{
+    console.log("FOR " + f);
+    
+    console.log("LForm: " + toLambdaForm(f, { f: 1, i: 1, g: 1 }));
+
+    console.log("Pooled: " + toPooled("f", f, { f: 1, i: 1, g: 1 }));
+
+    console.log();
+}
+
+console.log((function ()
+{
+    const glob = require("fast-glob").sync;
+    const path = require("path");
+    const resolve = workspace => pattern =>
+        path.resolve(workspace,
+            pattern.startsWith("/") ? pattern.substr(1) : pattern);
+
+    return toPooled("glob", function getFilenames(workspace, patterns)
+    {
+        const ignore = [];//["**/node_modules/"];
+        const include = patterns.map(resolve(workspace));
+        const firstPass = glob(
+            include.toArray(),
+            { ignore, onlyFiles: false, markDirectories: true });
+        const grouped = List(string)(firstPass)
+            .groupBy(path => path.endsWith("/") ? "directories" : "filenames");
+        const secondPass = glob(grouped
+            .get("directories", List(string)())
+            .map(path => `${path}**/*`).toArray(),
+            { ignore });
+
+        return Set(string)(grouped.get("filenames", List(string)()))
+            .concat(secondPass)
+            .toList()
+            .sort()
+            .map(filename => path.relative(workspace, filename));
+    }, { glob, resolve, Set, string, path, List, console });
+})() + "");
+
+const ls = path => fromAsync(Object, () => require("fs").promises.readdir(path));
+const state = toPooled("ls", (a, b) => 10 + ls(a + b), { ls })(".", "/");
+
+toPromise(Object, state);
+
+//console.log("[" + toPooled("ls", (a, b) => 10 + ls(a + b), { ls })(1, 2) + "]");
+
+return;
+// show((a, b) => (x => x + 3 + 2)(f(a)));
+
+// show((a, b) => (x => x + 3)(f(a)));
+
+
+// show((a, b) => f(a) + f(b));
+show((a, b) => i(f(a)));
+show((a, b) => f(f(a)));
+show((a, b) => i(f(a) + f(b)));
+show((a, b) => f(a)(f(a) + f(b)));
+show((a, b) => 
+{
+    const a1 = a + a;
+
+    return f(a1);
+});
+
+return
+console.log(toLambdaForm(a =>
+{
+    const a1 = f(a);
+
+    return f(a1);
+}, { f: 1 }) + "");
+console.log(toLambdaForm(a => f(f(a)), { f: 1 }) + "");
+console.log(toLambdaForm( a =>
+{
+    const a1 = a + a;
+    
+    return f(a1);
+}, { f: 1 }) + "");
+
+
+console.log(toPooled("f", a =>
+{
+    const a1 = f(a);
+    const b = f(a1);
+    
+    return b
+}) + "");
+
+console.log(toPooled("f", a =>
+{
+    const a1 = a + a;
+    
+    return f(a1);
+}) + "");
+
 
 return;
 const Source = data `Source` (

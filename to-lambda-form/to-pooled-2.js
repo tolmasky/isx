@@ -60,7 +60,7 @@ function fromAST(symbol, fAST)
 {
     const template = require("@babel/template").expression;
     const pCall = template(`p(%%callee%%)(%%arguments%%)`);
-    const pStateCall = template(`p.state(%%callee%%)(%%arguments%%)`);
+    const pSuccess = template(`p.success(%%argument%%)`);
 
     return babelMapAccum(Type, babelMapAccum.fromDefinitions(
     {
@@ -92,13 +92,21 @@ function fromAST(symbol, fAST)
         const [calleeT, callee] = expression.callee.type === "prefix" ?
             [Type.fValueToValue, expression.callee.operator] :
             mapAccum(expression.callee);
-        const [argumentsT, arguments] = mapAccum(expression.arguments);
+        const argumentPairs = expression.arguments.map(mapAccum);
+        const argumentsT = argumentPairs.reduce(
+            (T, [argumentT]) => Type.concat(T, argumentT),
+            Type.identity);
 
         if (is (Type.State, argumentsT))
-            return is (Type.returns(calleeT), Type.State) ?
-                [Type.fToState, pStateCall({ callee, arguments })] :
-                [Type.fToState, pCall({ callee, arguments })];
+        {
+            const arguments = argumentPairs.map(
+                ([argumentT, argument]) => is (Type.State, argumentT) ?
+                    argument : pSuccess({ argument }));
 
+            return [Type.State, pCall({ callee, arguments })];
+        }
+
+        const arguments = argumentPairs.map(([, argument]) => argument);
         const returnT = Type.concat(Type.returns(calleeT), argumentsT);
         const updated = { ...expression, callee, arguments };
 

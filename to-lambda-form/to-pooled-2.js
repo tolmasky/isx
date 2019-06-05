@@ -30,7 +30,7 @@ module.exports = function (symbolOrSymbols, f, free)
 //    if (missing.size > 0)
 //        throw Error("Missing values for " + missing.join(", "));
 
-    const code = `return ${generate(transformed).code}`;
+    const code = `return ${generate(transformed).code}`;console.log(code);
     const args = parameters.map(parameter => free[parameter]);
 
     return (new Function("p", ...parameters, code))(wrap, ...args);
@@ -66,9 +66,12 @@ function prefix(operator)
 function fromAST(symbols, fAST)
 {
     const template = require("@babel/template").expression;
-    const pCall = template(`p(%%callee%%)(%%arguments%%)`);
+    const pCall = template(`p(%%callee%%, %%arguments%%)`);
     const pSuccess = template(`p.success(%%argument%%)`);
-    const pLift = template(`p.lift(%%callee%%)(%%arguments%%)`);
+    const pLift = template(`p.lift(%%callee%%, %%arguments%%)`);
+    const pOperator = (template =>
+        operator => template({ operator: t.stringLiteral(operator) }))
+        (template(`p[%%operator%%]`));
 
     return babelMapAccum(Type, babelMapAccum.fromDefinitions(
     {
@@ -89,7 +92,8 @@ function fromAST(symbols, fAST)
 
             const updated = t.memberExpression(
                 asBinaryExpression.left,
-                computed ? asBinaryExpression.right : property);
+                computed ? asBinaryExpression.right : property,
+                computed);
 
             return [returnT, updated];
         },
@@ -105,42 +109,47 @@ function fromAST(symbols, fAST)
 
     function BinaryExpression(mapAccum, expression)
     {
-        const callee = prefix(expression.operator);
+        const callee = t.argumentPlaceholder();
         const arguments = [expression.left, expression.right];
-        const [returnT, updated] =
+        const [returnT, asCallExpression] =
             CallExpression(mapAccum, { callee, arguments });
 
-        return returnT === Type.Value ?
-            [Type.Value, expression] :
-            [returnT, updated];
+        if (returnT === Type.Value)
+            return [Type.Value, expression];
+
+        const [_, left, right] = asCallExpression.arguments;
+        const operator = pOperator(expression.operator);
+        const pArguments = [operator, left, right];
+
+        return [returnT, { ...asCallExpression, arguments: pArguments }];
     }
 
     function CallExpression(mapAccum, expression)
     {
-        const [calleeT, callee] = expression.callee.type === "prefix" ?
-            [Type.fValueToValue, expression.callee.operator] :
-            mapAccum(expression.callee);
+        const [calleeT, callee] = mapAccum(expression.callee);
+        const wrappedCallee = calleeT !== Type.State ?
+            pSuccess({ argument: callee }) : callee;
         const argumentPairs = expression.arguments.map(mapAccum);
         const argumentsT = argumentPairs.reduce(
             (T, [argumentT]) => Type.concat(T, argumentT),
             Type.identity);
+        const dependenciesT = Type.concat(calleeT, argumentsT);
 
-        if (is (Type.State, argumentsT))
+        if (is (Type.State, dependenciesT))
         {
             const arguments = argumentPairs.map(
                 ([argumentT, argument]) => is (Type.State, argumentT) ?
                     argument : pSuccess({ argument }));
 
             return calleeT === Type.fToState ?
-                [Type.State, pCall({ callee, arguments })] :
-                [Type.State, pLift({ callee, arguments })];
+                [Type.State, pCall({ callee: wrappedCallee, arguments })] :
+                [Type.State, pLift({ callee: wrappedCallee, arguments })];
         }
 
         const arguments = argumentPairs.map(([, argument]) => argument);
-        const returnT = Type.concat(Type.returns(calleeT), argumentsT);
         const updated = { ...expression, callee, arguments };
 
-        return [returnT, updated];
+        return [Type.returns(calleeT), updated];
     }
 }
 

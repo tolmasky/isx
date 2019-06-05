@@ -72,16 +72,26 @@ function fromAST(symbols, fAST)
 
     return babelMapAccum(Type, babelMapAccum.fromDefinitions(
     {
-        BinaryExpression(mapAccum, expression)
-        {
-            const callee = prefix(expression.operator);
-            const arguments = [expression.left, expression.right];
-            const [returnT, updated] =
-                CallExpression(mapAccum, { callee, arguments });
+        BinaryExpression,
+        CallExpression,
 
-            return returnT === Type.Value ?
-                [Type.Value, expression] :
-                [returnT, updated];
+        MemberExpression(mapAccum, expression)
+        {
+            const { object, property, computed } = expression;
+            const left = object;
+            const right = computed ? property : t.stringLiteral(property.name);
+            const operator = ".";
+            const [returnT, asBinaryExpression] =
+                BinaryExpression(mapAccum, { operator, left, right });
+
+            if (returnT !== Type.Value)
+                return [returnT, asBinaryExpression];
+
+            const updated = t.memberExpression(
+                asBinaryExpression.left,
+                computed ? asBinaryExpression.right : property);
+
+            return [returnT, updated];
         },
 
         Identifier(mapAccum, identifier)
@@ -89,11 +99,21 @@ function fromAST(symbols, fAST)
             return has(identifier.name, symbols) ?
                 [Type.fToState, identifier] :
                 [Type.Value, identifier];
-        },
-
-        CallExpression,
+        }
 
     }))(toLambdaForm.fromAST(fAST)[1]);
+
+    function BinaryExpression(mapAccum, expression)
+    {
+        const callee = prefix(expression.operator);
+        const arguments = [expression.left, expression.right];
+        const [returnT, updated] =
+            CallExpression(mapAccum, { callee, arguments });
+
+        return returnT === Type.Value ?
+            [Type.Value, expression] :
+            [returnT, updated];
+    }
 
     function CallExpression(mapAccum, expression)
     {

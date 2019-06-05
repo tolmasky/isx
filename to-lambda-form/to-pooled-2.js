@@ -10,12 +10,19 @@ const { List, Map } = require("@algebraic/collections");
 const Optional = require("../optional");
 const { default: generate } = require("@babel/generator");
 const Asynchronous = require("@cause/asynchronous");
+const wrap = require("@cause/task/wrap");
+const has = (({ hasOwnProperty }) =>
+    (key, object) => hasOwnProperty.call(object, key))
+    (Object);
 
 
-module.exports = function (symbol, f, free)
+module.exports = function (symbolOrSymbols, f, free)
 {
     const { parseExpression } = require("@babel/parser");
-    const [type, transformed] = fromAST(symbol, parseExpression(`(${f})`));
+    const symbols = typeof symbolOrSymbols === "string" ?
+        { [symbolOrSymbols]: true } :
+        Object.fromEntries([...symbolOrSymbols].map(key => [key, true]));
+    const [type, transformed] = fromAST(symbols, parseExpression(`(${f})`));
 
     const parameters = Object.keys(free || { });
     // const missing = scope.free.subtract(parameters);
@@ -26,7 +33,7 @@ module.exports = function (symbol, f, free)
     const code = `return ${generate(transformed).code}`;
     const args = parameters.map(parameter => free[parameter]);
 
-    return (new Function("p", ...parameters, code))(Asynchronous.p, ...args);
+    return (new Function("p", ...parameters, code))(wrap, ...args);
 }
 
 const Type = union `Type` (
@@ -56,11 +63,12 @@ function prefix(operator)
     return { type: "prefix", operator: t.stringLiteral(operator) };
 }
 
-function fromAST(symbol, fAST)
+function fromAST(symbols, fAST)
 {
     const template = require("@babel/template").expression;
     const pCall = template(`p(%%callee%%)(%%arguments%%)`);
     const pSuccess = template(`p.success(%%argument%%)`);
+    const pLift = template(`p.lift(%%callee%%)(%%arguments%%)`);
 
     return babelMapAccum(Type, babelMapAccum.fromDefinitions(
     {
@@ -78,11 +86,11 @@ function fromAST(symbol, fAST)
 
         Identifier(mapAccum, identifier)
         {
-            return identifier.name === symbol ?
+            return has(identifier.name, symbols) ?
                 [Type.fToState, identifier] :
                 [Type.Value, identifier];
         },
-        
+
         CallExpression,
 
     }))(toLambdaForm.fromAST(fAST)[1]);
@@ -103,7 +111,9 @@ function fromAST(symbol, fAST)
                 ([argumentT, argument]) => is (Type.State, argumentT) ?
                     argument : pSuccess({ argument }));
 
-            return [Type.State, pCall({ callee, arguments })];
+            return calleeT === Type.fToState ?
+                [Type.State, pCall({ callee, arguments })] :
+                [Type.State, pLift({ callee, arguments })];
         }
 
         const arguments = argumentPairs.map(([, argument]) => argument);

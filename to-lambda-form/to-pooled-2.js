@@ -78,6 +78,15 @@ function fromAST(symbols, fAST)
         BinaryExpression,
         CallExpression,
 
+        ArrowFunctionExpression(mapAccum, expression)
+        {
+            const [paramsT, params] = mapAccum(expression.params);
+            const [bodyT, body] = mapAccum(expression.body);
+            const type = bodyT === Type.State ? Type.fToState : Type.ValueToValue;
+
+            return [type, { ...expression, params, body }];
+        },
+
         MemberExpression(mapAccum, expression)
         {
             const { object, property, computed } = expression;

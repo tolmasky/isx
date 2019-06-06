@@ -87,6 +87,23 @@ function fromAST(symbols, fAST)
             return [type, { ...expression, params, body }];
         },
 
+        ArrayExpression(mapAccum, expression)
+        {
+            const callee = t.argumentPlaceholder();
+            const arguments = expression.elements;
+            const [returnT, asCallExpression] =
+                CallExpression(mapAccum, { callee, arguments });
+
+            if (returnT === Type.Value)
+                return [Type.Value, expression];
+
+            const [_, elements] = asCallExpression.arguments;
+            const operator = pOperator("=([])");
+            const pArguments = [operator, elements];
+
+            return [returnT, { ...asCallExpression, arguments: pArguments }];
+        },
+
         MemberExpression(mapAccum, expression)
         {
             const { object, property, computed } = expression;

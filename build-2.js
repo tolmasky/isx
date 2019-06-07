@@ -13,26 +13,40 @@ const write = (path, ...args) =>
     fromAsyncCall(() =>
         fs.promises.writeFile(path, ...args).then(() => path));
 const tmp = () => (path => (fs.mkdtempSync(path), path))(`${require("os").tmpdir()}/`);
+const map = require("@cause/task/map");
 
+const isCopyOrAdd = instruction =>
+    is(Instruction.add, instruction) || is(Instruction.copy, instruction);
+const getDependencies = instruction =>
+    isCopyOrAdd(instruction) && instruction.from !== None ?
+        [instruction.from] : [];
 
-const doIt = toPooled(["toSource", "spawn", "write", "rstream"], function (playbook)
+const doIt = toPooled(["toSource", "spawn", "write", "rstream", "map"], function build(playbook)
 {
+    const x = console.log("CALLED BUILD ON: " + playbook);
+
     const { instructions, workspace } = playbook;
+    const a = console.log("GOING TO PASS IN: " + instructions.flatMap(getDependencies));
+    const dependencies = map(build, instructions.flatMap(getDependencies));
+//    const ohno = console.log("THe DEPENDENCIES ARE: " + dependencies);
     const patterns = instructions
         .filter(instruction =>
-            (is(Instruction.copy, instruction) ||
-            is(Instruction.add, instruction)) &&
+            isCopyOrAdd(instruction) &&
             instruction.from === None)
         .map(instruction => instruction.source);
-
+//const b = console.log("THE PATTERNS ARE: " + patterns + " " + typeof patterns);
     const source = toSource(workspace, patterns);
+//    const x2 = console.log("T!!HE SOURCE IS: " + source);
     const contents = image.render(playbook);
+ //   const t = console.log("THE COUNTENTS ARE: " + contents);
     const DockerfilePath = write(`${tmp()}Dockerfile`, contents, "utf-8");
+    const workspaceTransform = workspace === None ?
+        [] : [`--transform=s,${workspace}/,workspace/,`];
     const tarPath = (tarPath => spawn("gtar", ["-cvf",
         tarPath,
         "--absolute-names",
-        `--xform=s,${workspace}/,workspace/,`,
-        `--xform=s,${DockerfilePath},Dockerfile,`,
+        ...workspaceTransform,
+        `--transform=s,${DockerfilePath},Dockerfile,`,
         ...source.checksums.keySeq(),
         DockerfilePath]) && tarPath)(`${tmp()}/blah.tar`);
     const tarStream = fs.createReadStream(tarPath);
@@ -41,7 +55,7 @@ const doIt = toPooled(["toSource", "spawn", "write", "rstream"], function (playb
         { stdio: [tarStream, "pipe", "pipe"] });
 
     return dockerOutput.match(/([a-z0-9]{12})\n$/)[1];
-}, { toSource, List, string, spawn, console, write, tmp, is, image, Instruction, fs, None });
+}, { toSource, List, string, spawn, console, write, tmp, is, image, Instruction, fs, None, isCopyOrAdd, getDependencies, map });
 
 module.exports = async function build({ filename, push, sequential }, properties)
 {

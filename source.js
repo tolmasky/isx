@@ -20,11 +20,9 @@ const getFilenames = (function ()
     {
         const ignore = [];//["**/node_modules/"];
         const include = patterns.map(resolve(workspace));
-        const b = console.log(include.toArray());
         const firstPass = glob(
             include.toArray(),
             { ignore, onlyFiles: false, markDirectories: true });
-        const what = console.log(firstPass);
         const grouped = List(string)(firstPass)
             .groupBy(path => path.endsWith("/") ? "directories" : "filenames");
         const secondPass = glob(grouped
@@ -50,6 +48,9 @@ const getChecksums = (function ()
 
     return toPooled("spawn", function getChecksums(filenames)
     {
+        if (filenames.size === 0)
+            return OrderedMap(string, string)([]);
+
         const { stdout } = spawn(command, [...args, ...filenames]);
         const [...matches] = stdout.matchAll(ShasumRegExp);
         const pairs = matches
@@ -63,11 +64,11 @@ Source.from = toPooled(["getFilenames", "getChecksums"], function toSource(works
 {
     const filenames = getFilenames(workspace, patterns);
     const checksums = getChecksums(filenames);
-    const checksum = getChecksum(Map(string, string), checksums);
+    const checksum = getChecksum(OrderedMap(string, string), checksums);
 
     return Source({ checksum, checksums });
     
     return checksums;
-}, { getChecksums, getFilenames, getChecksum, Source, Map, string, console });
+}, { getChecksums, getFilenames, getChecksum, Source, OrderedMap, string, console });
 
 module.exports = Source;

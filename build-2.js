@@ -12,10 +12,6 @@ const { fromAsyncCall } = require("@cause/task");
 const write = (path, ...args) =>
     fromAsyncCall(() =>
         fs.promises.writeFile(path, ...args).then(() => path));
-const rstream = path => fromAsyncCall(() =>
-    (stream => new Promise(resolve =>
-        stream.on("open", () => resolve(stream))))
-    (fs.createReadStream(path)));
 const tmp = () => (path => (fs.mkdtempSync(path), path))(`${require("os").tmpdir()}/`);
 
 
@@ -25,8 +21,8 @@ const doIt = toPooled(["toSource", "spawn", "write", "rstream"], function (playb
     const patterns = instructions
         .filter(instruction =>
             (is(Instruction.copy, instruction) ||
-            is(Instruction.add, instruction)) /*&&
-            instruction.from === None*/)
+            is(Instruction.add, instruction)) &&
+            instruction.from === None)
         .map(instruction => instruction.source);
 
     const source = toSource(workspace, patterns);
@@ -45,7 +41,7 @@ const doIt = toPooled(["toSource", "spawn", "write", "rstream"], function (playb
         { stdio: [tarStream, "pipe", "pipe"] });
 
     return dockerOutput.match(/([a-z0-9]{12})\n$/)[1];
-}, { toSource, List, string, spawn, console, write, tmp, is, image, Instruction, fs });
+}, { toSource, List, string, spawn, console, write, tmp, is, image, Instruction, fs, None });
 
 module.exports = async function build({ filename, push, sequential }, properties)
 {
@@ -65,50 +61,6 @@ try {
     {
         console.log(e);
     }
-}
-
-
-
-/*
-
-    const buildCommand = ["docker", "build", "-"].join(" ")
-    const steps = [buildCommand, "<", tarPath].join(" ");
-    const a = console.log("LS IS " + spawn("ls", [tarPath]));
-    const b = console.log("STEPS IS " + JSON.stringify(steps));
-
-    return spawn("sh", ["-c", steps]);
-    /*return tarPath;
-    const a = console.log("TAR PATH: " + tarPath);
-    const checksum = spawn("docker", ["build", "-f", "Dockerfile", tarPath]);
-
-    return checksum;*/
-
-
-
-function toString(indent)
-{
-    return function (status)
-    {
-        const { image, dependencies } = status;
-        const name = getUnscopedTypename(getType(status));
-        const spaces = Array.from({ length: indent * 2 }, () => " ").join("");
-        const children = dependencies.map(toString(indent + 1)).join("\n");
-        var rest = children && `\n${children}`;
-
-        if (status.buildProcess)
-            rest+= `\n${spaces}[${status.buildProcess}]`;
-
-        return `${spaces}${name} (${image.tags.get(0)})${rest}`;
-    }
-}
-
-async function each(f, array, sequential)
-{
-    if (sequential)
-        for (const item of array)
-            await f(item);
-    else
-        await Promise.all(array.map(f));
 }
 
 function toPushCommands(image)

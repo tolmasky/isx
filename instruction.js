@@ -2,7 +2,7 @@ const { data, union, string, Maybe } = require("@algebraic/type");
 const { base, getArguments } = require("generic-jsx");
 
 const image = () => require("./image");
-const { Optional, None } = require("./optional");
+const { Optional, None } = require("@algebraic/type/optional");
 const type = record => (Object.getPrototypeOf(record).constructor);
 
 

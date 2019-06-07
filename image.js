@@ -1,7 +1,7 @@
 const { is, data, string, union, Maybe } = require("@algebraic/type");
 const { List, Map, Set } = require("@algebraic/collections");
 const { base, getArguments } = require("generic-jsx");
-const { Optional, None } = require("./optional");
+const { Optional, None } = require("@algebraic/type/optional");
 const Instruction = require("./instruction");
 const getChecksum = require("./get-checksum");
 

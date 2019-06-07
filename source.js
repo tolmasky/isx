@@ -2,7 +2,7 @@ const { data, string } = require("@algebraic/type");
 const { List, Map, OrderedMap, Set } = require("@algebraic/collections");
 const { fromAsyncCall } = require("@cause/task");
 const getChecksum = require("./get-checksum");
-const toPooled = require("./to-lambda-form/to-pooled-2");
+const toPooled = require("@cause/task/transform/to-pooled");
 
 const Source = data `Source` (
     checksum    => string,

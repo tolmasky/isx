@@ -1,9 +1,8 @@
-const { data, union, string, Maybe } = require("@algebraic/type");
+const { data, union, string, Maybe, type } = require("@algebraic/type");
+const { Optional, None } = require("@algebraic/type/optional");
 const { base, getArguments } = require("generic-jsx");
 
 const image = () => require("./image");
-const { Optional, None } = require("@algebraic/type/optional");
-const type = record => (Object.getPrototypeOf(record).constructor);
 
 
 const instruction = union `instruction` (
@@ -46,7 +45,7 @@ const instruction = union `instruction` (
 
 instruction.render = function (instruction)
 {
-    return type(instruction).render(instruction);
+    return type.of(instruction).render(instruction);
 }
 
 const insert = instruction => ({ from, source, destination }) =>

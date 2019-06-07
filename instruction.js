@@ -51,7 +51,7 @@ instruction.render = function (instruction)
 
 const insert = instruction => ({ from, source, destination }) =>
     `${instruction} ${from === None ? "" : `--from ${from.checksum} `}` +
-    `${source} ${destination}`;
+    `workspace/${source} ${destination}`;
 
 instruction.add.render = insert("ADD");
 instruction.copy.render = insert("COPY");

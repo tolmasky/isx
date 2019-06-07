@@ -12,10 +12,14 @@ const { fromAsyncCall } = require("@cause/task");
 const write = (path, ...args) =>
     fromAsyncCall(() =>
         fs.promises.writeFile(path, ...args).then(() => path));
+const rstream = path => fromAsyncCall(() =>
+    (stream => new Promise(resolve =>
+        stream.on("open", () => resolve(stream))))
+    (fs.createReadStream(path)));
 const tmp = () => (path => (fs.mkdtempSync(path), path))(`${require("os").tmpdir()}/`);
 
 
-const doIt = toPooled(["toSource", "spawn", "write"], function (playbook)
+const doIt = toPooled(["toSource", "spawn", "write", "rstream"], function (playbook)
 {
     const { instructions, workspace } = playbook;
     const patterns = instructions
@@ -28,18 +32,24 @@ const doIt = toPooled(["toSource", "spawn", "write"], function (playbook)
     const source = toSource(workspace, patterns);
     const contents = image.render(playbook);
     const DockerfilePath = write(`${tmp()}Dockerfile`, contents, "utf-8");
-    const tarPath = spawn("gtar", ["-cvf", "./blah.tar",
+    const tarPath = (tarPath => spawn("gtar", ["-cvf",
+        tarPath,
         "--absolute-names",
         `--xform=s,${workspace}/,workspace/,`,
         `--xform=s,${DockerfilePath},Dockerfile,`,
         ...source.checksums.keySeq(),
-        DockerfilePath]) && "./blar.tar";
+        DockerfilePath]) && tarPath)(`${tmp()}/blah.tar`);
+    const tarStream = fs.createReadStream(tarPath);
+    const dockerOutput = spawn("docker",
+        ["build", "-"],
+        { stdio: [tarStream, "pipe", "pipe"] });
 
-    return tarPath;
-}, { toSource, List, string, spawn, console, write, tmp, is, image, Instruction });
+    return dockerOutput.match(/([a-z0-9]{12})\n$/)[1];
+}, { toSource, List, string, spawn, console, write, tmp, is, image, Instruction, fs });
 
 module.exports = async function build({ filename, push, sequential }, properties)
 {
+try {
     FIXME_registerGenericJSX();
 
     const result = require(filename);
@@ -50,9 +60,28 @@ module.exports = async function build({ filename, push, sequential }, properties
     const tarPath = await toPromise(Object, doIt(images.get(0)));
 
     console.log(tarPath);
+    }
+    catch(e)
+    {
+        console.log(e);
+    }
 }
 
 
+
+/*
+
+    const buildCommand = ["docker", "build", "-"].join(" ")
+    const steps = [buildCommand, "<", tarPath].join(" ");
+    const a = console.log("LS IS " + spawn("ls", [tarPath]));
+    const b = console.log("STEPS IS " + JSON.stringify(steps));
+
+    return spawn("sh", ["-c", steps]);
+    /*return tarPath;
+    const a = console.log("TAR PATH: " + tarPath);
+    const checksum = spawn("docker", ["build", "-f", "Dockerfile", tarPath]);
+
+    return checksum;*/
 
 
 

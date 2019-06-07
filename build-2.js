@@ -15,21 +15,28 @@ const write = (path, ...args) =>
 const tmp = () => (path => (fs.mkdtempSync(path), path))(`${require("os").tmpdir()}/`);
 
 
-const doIt = toPooled(["toSource", "spawn", "write"], function (workspace, patterns)
+const doIt = toPooled(["toSource", "spawn", "write"], function (playbook)
 {
-    const source = toSource(workspace, patterns);
-    const DockerfilePath = write(`${tmp()}Dockerfile`, "hi", "utf-8");
-    const dockerfile = console.log("OH BOY! " + DockerfilePath);
+    const { instructions, workspace } = playbook;
+    const patterns = instructions
+        .filter(instruction =>
+            (is(Instruction.copy, instruction) ||
+            is(Instruction.add, instruction)) /*&&
+            instruction.from === None*/)
+        .map(instruction => instruction.source);
 
-    const tar = spawn("gtar", ["-cvf", "./blah.tar",
+    const source = toSource(workspace, patterns);
+    const contents = image.render(playbook);
+    const DockerfilePath = write(`${tmp()}Dockerfile`, contents, "utf-8");
+    const tarPath = spawn("gtar", ["-cvf", "./blah.tar",
         "--absolute-names",
         `--xform=s,${workspace}/,workspace/,`,
         `--xform=s,${DockerfilePath},Dockerfile,`,
         ...source.checksums.keySeq(),
-        DockerfilePath]);
+        DockerfilePath]) && "./blar.tar";
 
-    return tar;
-}, { toSource, List, string, spawn, console, write, tmp });
+    return tarPath;
+}, { toSource, List, string, spawn, console, write, tmp, is, image, Instruction });
 
 module.exports = async function build({ filename, push, sequential }, properties)
 {
@@ -40,60 +47,11 @@ module.exports = async function build({ filename, push, sequential }, properties
         .concat(typeof result === "function" ?
             result(properties) : result));
     const images = fImages.map(fImage => image.compile(fImage));
-    const { workspace, instructions } = images.get(0);
-    console.log("----");
-    console.log(images.get(0).instructions.map(instruction => getUnscopedTypename(of(instruction))));
-    const patterns = images.get(0).instructions
-        .filter(instruction =>
-            (is(Instruction.copy, instruction) ||
-            is(Instruction.add, instruction)) /*&&
-            instruction.from === None*/)
-        .map(instruction => instruction.source);
-
-    const tarPath = await toPromise(Object, doIt(workspace, patterns));
+    const tarPath = await toPromise(Object, doIt(images.get(0)));
 
     console.log(tarPath);
-    //const status = Status.fromImage(images.get(0));
-
-    //console.log(toString(0)(status));
-
-    //toPromise(Status, status);
-    //console.log(Status.initialStatusOfImage(images.get(0)));
-
-    //console.log(getChecksum(image, images.get(0)));
-/*
-    await each(async image =>
-    {
-        const { mkdtempSync, writeFileSync } = require("fs");
-        const tmp = `${require("os").tmpdir()}/`;
-        const DockerfilePath = `${mkdtempSync(tmp)}/Dockerfile`;
-        const DockerfileContents = Image.render(image);
-
-        writeFileSync(DockerfilePath, DockerfileContents, "utf-8");
-
-        const { buildContext } = image;
-        const includes = buildContext.filenames.push(DockerfilePath).join("\n");
-
-        const steps =
-        [
-            `printf "${includes}"`,
-            `tar -cv --files-from - `,
-            toBuildCommand(image, DockerfilePath)
-        ].join(" | ")
-
-        const cwd = buildContext.workspace;
-
-        await spawn("sh", ["-c", steps], { cwd, stdio });
-
-        console.log("FINISHED BUILDING " + image.tags.join(", "));
-    }, images, sequential);
-
-    if (push)
-        await each(
-            args => spawn("docker", args, { stdio }),
-            images.flatMap(toPushCommands),
-            sequential);*/
 }
+
 
 
 
@@ -172,5 +130,46 @@ function FIXME_registerGenericJSX()
 
     global.node = require("./node");
 }
+
+    //const status = Status.fromImage(images.get(0));
+
+    //console.log(toString(0)(status));
+
+    //toPromise(Status, status);
+    //console.log(Status.initialStatusOfImage(images.get(0)));
+
+    //console.log(getChecksum(image, images.get(0)));
+/*
+    await each(async image =>
+    {
+        const { mkdtempSync, writeFileSync } = require("fs");
+        const tmp = `${require("os").tmpdir()}/`;
+        const DockerfilePath = `${mkdtempSync(tmp)}/Dockerfile`;
+        const DockerfileContents = Image.render(image);
+
+        writeFileSync(DockerfilePath, DockerfileContents, "utf-8");
+
+        const { buildContext } = image;
+        const includes = buildContext.filenames.push(DockerfilePath).join("\n");
+
+        const steps =
+        [
+            `printf "${includes}"`,
+            `tar -cv --files-from - `,
+            toBuildCommand(image, DockerfilePath)
+        ].join(" | ")
+
+        const cwd = buildContext.workspace;
+
+        await spawn("sh", ["-c", steps], { cwd, stdio });
+
+        console.log("FINISHED BUILDING " + image.tags.join(", "));
+    }, images, sequential);
+
+    if (push)
+        await each(
+            args => spawn("docker", args, { stdio }),
+            images.flatMap(toPushCommands),
+            sequential);*/
 
 

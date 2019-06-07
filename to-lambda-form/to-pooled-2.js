@@ -77,6 +77,7 @@ function fromAST(symbols, fAST)
     {
         BinaryExpression,
         CallExpression,
+        LogicalExpression: BinaryExpression,
 
         ArrowFunctionExpression(mapAccum, expression)
         {

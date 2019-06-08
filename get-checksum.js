@@ -24,7 +24,7 @@ function getDataChecksum(type, value)
     const fields = data.fields(type)
         .map(([name, type]) => getChecksum(type, value[name]));
 
-    return `data:${getSha512({ fields })}`;
+    return `data-${getSha512({ fields })}`;
 }
 
 function getUnionChecksum(type, value)
@@ -33,12 +33,12 @@ function getUnionChecksum(type, value)
     const index = components.findIndex(type => is(type, value));
     const nested = getChecksum(components[index], value);
 
-    return `union:${getSha512({ index, nested })}`;
+    return `union-${getSha512({ index, nested })}`;
 }
 
 function getPrimitiveChecksum(type, value)
 {
-    return `${typeof value}:${JSON.stringify(value)}`;
+    return `${typeof value}-${JSON.stringify(value)}`;
 }
 
 function getListChecksum(type, value)
@@ -56,7 +56,7 @@ function getMapChecksum(type, value)
             [getChecksum(keyType, key), getChecksum(valueType, value)])
         .toObject();
 
-    return `Map:${getSha512({ items })}`;
+    return `Map-${getSha512({ items })}`;
 }
 
 function getOrderedMapChecksum(type, value)
@@ -67,14 +67,15 @@ function getOrderedMapChecksum(type, value)
             [getChecksum(keyType, key), getChecksum(valueType, value)])
         .toObject();
 
-    return `OrderedMap:${getSha512({ items })}`;
+    return `OrderedMap-${getSha512({ items })}`;
 }
 
 function getSha512(value)
 {
     return crypto.createHash("sha512")
         .update(JSON.stringify(value))
-        .digest("base64");
+        .digest("base64")
+        .replace(/\//g, "_");
 }
 
 /*

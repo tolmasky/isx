@@ -19,7 +19,7 @@ const node =
 
     install: ({ version, destination = "/usr/local" }) =>
         <add    from = { <node.image version = { version } /> }
-                source = "node-v${version}-linux-x64.tar.xz"
+                source = { `node-v${version}-linux-x64.tar.xz` }
                 destination = { destination } />
 }
 

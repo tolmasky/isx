@@ -5,7 +5,7 @@ const { add, copy } = require("./instruction");
 const toPooled = require("@cause/task/transform/to-pooled");
 
 const { mkdirp } = require("@cause/task/fs");
-const spawn = require("@cause/task/spawn");
+const { stdout: spawn } = require("@cause/task/spawn");
 const CACHE = "./cache";
 
 const FileSet = data `FileSet` (
@@ -17,22 +17,24 @@ const FileSet = data `FileSet` (
 //    filenames   => OrderedSet(string),
 */
 
-const toFileSet = toPooled(["build", "spawn"], function({ workspace, instruction })
+const toFileSet = toPooled(["build", "spawn", "mkdirp"], function({ workspace, instruction })
 {
     const { from, source } = instruction;
 
     if (from === None)
         return FileSet({ pattern: source, scope: "workspace", workspace });
-const _ = console.log("SO this far...");
+
+    const __announce__ = console.log("TO FILE SET " + from.tags);
     const build = buildR();
+    const l = console.log("BUILD IS: " + build);
     const image = build(from);
-    const container = spawn("docker",
-        ["create", image])
-        .match(/([^\n]*)\n$/)[1];
+    const result = console.log("THE RESULT: " + image);
+    const container = spawn("docker", ["create", image]).match(/([^\n]*)\n$/)[1];
     const identifier = source.replace(/-/g, "--").replace(/\//g, "-");
-const a = console.log("IDENTIFIER: " + identifier);
+const a = console.log("__IDENTIFIER: " + identifier);
     const destination = mkdirp(`${CACHE}/${from.checksum}/${identifier}`);
 const o = console.log("DESTINATION: " + destination);
+const and_container = console.log("BOTH: " + container + " " + destination);
     const pattern = spawn("docker",
     [
         "cp",
@@ -42,13 +44,14 @@ const o = console.log("DESTINATION: " + destination);
     const scope = `from/${from.checksum}`;
 
     return FileSet({ pattern, scope, workspace: destination });
-}, { CACHE, FileSet, None, spawn, mkdirp, buildR: () => require("./build-3") });
+}, { CACHE, FileSet, None, spawn, mkdirp, buildR: () => require("./build-3").build_ });
 
 const extract = toPooled(["toFileSet"], function ({ workspace, instruction })
 {
     if (!type.is(add, instruction) && !type.is(copy, instruction))
         return [None, instruction];
-const a = console.log("EXTRACTING " + workspace + " " + instruction.from);
+
+    const __announce__ = console.log(`EXTRACT ${instruction.from.tags}`);
     const T = type.of(instruction);
     const fileSet = toFileSet({ workspace, instruction });
     const t = console.log("file set is " + fileSet);

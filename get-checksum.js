@@ -38,7 +38,7 @@ function getUnionChecksum(type, value)
 
 function getPrimitiveChecksum(type, value)
 {
-    return `${typeof value}-${JSON.stringify(value)}`;
+    return `${typeof value}-${getSha512(JSON.stringify(value))}`;
 }
 
 function getListChecksum(type, value)

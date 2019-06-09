@@ -3,56 +3,54 @@ const { List } = require("@algebraic/collections");
 const image = require("./image");
 const Instruction = require("./instruction");
 const { None } = require("@algebraic/type/optional");
-const { from: toSource } = require("./source");
 const toPooled = require("@cause/task/transform/to-pooled");
 const toPromise = require("@cause/cause/to-promise");
 const { stdout: spawn } = require("@cause/task/spawn");
 const fs = require("fs");
 const { mkdirp, write } = require("@cause/task/fs");
-const tmp = () => (path => (fs.mkdtempSync(path), path))(`${require("os").tmpdir()}/`);
 const map = require("@cause/task/map");
-        
+const getChecksum = require("./get-checksum");
 const CACHE = "./cache";
+
 const { FileSet, from } = require("./extract");
 
 
-const build = toPooled(["extract", "map", "spawn", "write"], function build(playbook)
+const build = toPooled(["map", "spawn", "write", "mkdirp"], function build(playbook)
 {
+    const __announce__ = console.log(`BUILD ${playbook.tags}`);
     const { workspace } = playbook;
     const extract = from(workspace);
-    const [fileSets, instructions] = map(extract, playbook.instructions)
+    const [fileSets, instructions] = playbook.instructions
+        .map(instruction => [None, instruction])//map(extract, playbook.instructions);
         .reduce(([fileSets, instructions], [fileSet, instruction]) =>
         [
             fileSet === None ? fileSets : fileSets.push(fileSet),
             instructions.push(instruction)
         ], [List(FileSet)(), List(Instruction)()]);
-
-    const a = console.log(fileSets);
-
-    const contents = image.render(playbook);
-    const DockerfilePath = write(`${tmp()}Dockerfile`, contents, "utf-8");
-const b = console.log("BLAH! " + ["-cvf",
-        tarPath,
-        "--absolute-names",
-//        ...workspaceTransform,
-        `--transform=s,${DockerfilePath},Dockerfile,`,
-//        ...source.checksums.keySeq(),
-        DockerfilePath].join(" "));
+        //playbook.filter(instruction => instruction.
+    const fromExtractions = image({ ...playbook, instructions });
+    const contents = image.render(fromExtractions);
+    const checksum = getChecksum(string, contents);
+    const DockerfilePath = write(
+        `${CACHE}/dockerfiles/${checksum}`,
+        contents,
+        "utf-8");
     const tarPath = (tarPath => spawn("gtar", ["-cvf",
         tarPath,
         "--absolute-names",
 //        ...workspaceTransform,
         `--transform=s,${DockerfilePath},Dockerfile,`,
 //        ...source.checksums.keySeq(),
-        DockerfilePath]) && tarPath)(`${tmp()}/blah.tar`);
-
+        DockerfilePath]) && tarPath)
+        (`${CACHE}/tars/${checksum}.tar`);
     const tarStream = fs.createReadStream(tarPath);
     const dockerOutput = spawn("docker",
         ["build", "-"],
         { stdio: [tarStream, "pipe", "pipe"] });
-const c = console.log(dockerOutput);
+
     return dockerOutput.match(/([a-z0-9]{12})\n$/)[1];
-}, { from, FileSet, List, string, spawn, console, write, tmp, is, image, Instruction, fs, None, map });
+
+}, { from, CACHE, getChecksum, FileSet, List, string, spawn, console, write, is, image, Instruction, fs, None, map, of, mkdirp });
 
 module.exports = async function build_({ filename, push, sequential }, properties)
 {
@@ -64,7 +62,8 @@ try {
         .concat(typeof result === "function" ?
             result(properties) : result));
     const images = fImages.map(fImage => image.compile(fImage));
-    const tarPath = await toPromise(Object, build(images.get(0)));
+    const extract = from(images.get(0).workspace);
+    const tarPath = await toPromise(Object, extract(images.get(0).instructions.get(0)));
 
     console.log(tarPath);
     }
@@ -74,28 +73,7 @@ try {
     }
 }
 
-function toPushCommands(image)
-{
-    const socket = is(string, image.socket) ? ["-H", image.socket] : [];
-
-    return image.tags.map(tag => [...socket, "push", tag]);
-}
-
-function toBuildCommand(image, path)
-{
-    const flags =
-    [
-        image.socket !== Maybe(string).Nothing && `-H ${image.socket}`,
-        ...image.dockerArguments
-    ].filter(flag => !!flag).join(" ");
-    const buildFlags =
-    [
-        `-f ${path}`,
-        ...image.tags.map(tag => `-t ${tag}`)
-    ].filter(flag => !!flag).join(" ");
-
-    return `docker ${flags} build ${buildFlags} -`;
-}
+module.exports.build_ = build;
 
 function FIXME_registerGenericJSX()
 {
@@ -123,6 +101,24 @@ function FIXME_registerGenericJSX()
     global.node = require("./node");
 }
 
+
+/*
+    const o = console.log("DOCKER FILE: " + DockerfilePath);
+    const tarPath = (tarPath => spawn("gtar", ["-cvf",
+        tarPath,
+        "--absolute-names",
+//        ...workspaceTransform,
+        `--transform=s,${DockerfilePath},Dockerfile,`,
+//        ...source.checksums.keySeq(),
+        DockerfilePath]) && tarPath)
+        (`${CACHE}/tars/${getChecksum(string, contents)}`);
+const i = console.log("THE TAR FILE: " + tarPath);
+    const tarStream = fs.createReadStream(tarPath);
+    const dockerOutput = spawn("docker",
+        ["build", "-"],
+        { stdio: [tarStream, "pipe", "pipe"] });
+const c = console.log("THE RESULT WAS: " + dockerOutput);
+    return dockerOutput.match(/([a-z0-9]{12})\n$/)[1];*/
 /*
 const extract = toPooled(["build", "spawn", "mkdirp"], function extract({ from, source })
 {

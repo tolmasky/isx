@@ -20,8 +20,7 @@ const build = toPooled(["map", "spawn", "write", "mkdirp"], function build(playb
     const __announce__ = console.log(`BUILD ${playbook.tags}`);
     const { workspace } = playbook;
     const extract = from(workspace);
-    const [fileSets, instructions] = playbook.instructions
-        .map(instruction => [None, instruction])//map(extract, playbook.instructions);
+    const [fileSets, instructions] = map(extract, playbook.instructions)
         .reduce(([fileSets, instructions], [fileSet, instruction]) =>
         [
             fileSet === None ? fileSets : fileSets.push(fileSet),
@@ -63,7 +62,8 @@ try {
             result(properties) : result));
     const images = fImages.map(fImage => image.compile(fImage));
     const extract = from(images.get(0).workspace);
-    const tarPath = await toPromise(Object, extract(images.get(0).instructions.get(0)));
+//    const tarPath = await toPromise(Object, extract(images.get(0).instructions.get(0)));
+    const tarPath = await toPromise(Object, build(images.get(0)));
 
     console.log(tarPath);
     }

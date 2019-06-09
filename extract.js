@@ -3,6 +3,10 @@ const { None } = require("@algebraic/type/optional");
 const { List, OrderedMap } = require("@algebraic/collections");
 const { add, copy } = require("./instruction");
 const toPooled = require("@cause/task/transform/to-pooled");
+const { fromAsyncCall } = require("@cause/task");
+const t_id = (...args) =>
+        fromAsyncCall(async () => (await 0, (x => x)(...args)));
+
 
 const { mkdirp } = require("@cause/task/fs");
 const { stdout: spawn } = require("@cause/task/spawn");
@@ -46,10 +50,10 @@ const and_container = console.log("BOTH: " + container + " " + destination);
     return FileSet({ pattern, scope, workspace: destination });
 }, { CACHE, FileSet, None, spawn, mkdirp, buildR: () => require("./build-3").build_ });
 
-const extract = toPooled(["toFileSet"], function ({ workspace, instruction })
+const extract = toPooled(["toFileSet", "t_id"], function ({ workspace, instruction })
 {
     if (!type.is(add, instruction) && !type.is(copy, instruction))
-        return [None, instruction];
+        return t_id([None, instruction]);
 
     const __announce__ = console.log(`EXTRACT ${instruction.from.tags}`);
     const T = type.of(instruction);
@@ -59,7 +63,7 @@ const extract = toPooled(["toFileSet"], function ({ workspace, instruction })
     const scopedSource = `${fileSet.scope}/${source}`;
 
     return [fileSet, T({ source: scopedSource, destination })];
-}, { type, None, toFileSet });
+}, { type, None, toFileSet, t_id });
 
 extract.from = workspace => instruction => extract({ workspace, instruction });
 

@@ -1,4 +1,5 @@
 const { is, string } = require("@algebraic/type");
+const { dirname, basename } = require("path");
 const toPooled = require("@cause/task/transform/to-pooled");
 const map = require("@cause/task/map");
 const { mkdirp } = require("@cause/task/fs");
@@ -7,6 +8,16 @@ const FileSet = require("./file-set");
 const { lastline, stdout: spawn } = require("@cause/task/spawn");
 const CACHE = "./cache";
 
+
+
+const copy = toPooled(["mkdirp", "spawn"], function copy(container, filename, destinationBase)
+{
+    const parent = mkdirp(dirname(`${destinationBase}/${filename}`));
+    const destination = `${parent}/${basename(filename)}`;
+    const source = `${container}:${filename}`;
+
+    return spawn("docker", ["cp", source, destination]) || destination;
+}, { dirname, basename, mkdirp, spawn });
 
 const extract = toPooled(["glob", "mkdirp", "spawn", "map"], function extract(fileSet)
 {
@@ -18,15 +29,10 @@ const extract = toPooled(["glob", "mkdirp", "spawn", "map"], function extract(fi
 
     const identifier = origin.id;
     const container = lastline(spawn("docker", ["create", origin.id]));
-    const destination = mkdirp(`${CACHE}/${origin.id}`);
+    const destination = `${CACHE}/${origin.id}`;
 
-    return map(filename => spawn("docker",
-    [
-        "cp",
-        `${container}:${filename}`,
-        `${destination}/${filename}`
-    ]) || `${destination}/${filename}`, filenames);
-}, { glob, is, string, mkdirp, CACHE, spawn, map, lastline });
+    return map(filename => copy(container, filename, destination), filenames);
+}, { glob, is, string, CACHE, spawn, map, lastline, copy });
 
 module.exports = toPooled(["map"], function tar(fileSets)
 {

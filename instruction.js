@@ -51,7 +51,7 @@ instruction.render = function (instruction)
 const insert = instruction => ({ from, source, destination }) =>
 [
     instruction,
-    `${from === None ? "workspace/" : "WHERE/"}/${source}`,
+    source,
     destination
 ].join(" ");
 

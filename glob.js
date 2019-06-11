@@ -7,9 +7,10 @@ const findInDocker = (tag, ...args) =>
     spawn("docker", ["run", "--rm", tag, "find", "/", ...args]);
 
 
-module.exports = toPooled(["command"], function glob(source, patterns)
+module.exports = toPooled(["command"], function glob(fileSet)
 {
-    const local = is(string, source);
+    const { origin, patterns } = fileSet;
+    const local = is(string, origin);
 
     // FIXME: We should do "-o -empty -type d" with the same pattern without the
     // trailing piece.
@@ -18,10 +19,10 @@ module.exports = toPooled(["command"], function glob(source, patterns)
         (local ? `${source}/${glob}` : `/${glob}`)
             .replace(/[\?\.]/g, character => `\\${character}`)
             .replace(/\*/g, "[^\/]*") + `\\(/.*\\)${optional}`;
-
+const pp = console.log("OH! " + fileSet);
     const command = local ? find : findInDocker;
     const output = command(
-        local ? source : source.identifier,
+        local ? origin : origin.id,
         "-type", "f",
         ...patterns
             .map(globToRegExp)
@@ -29,10 +30,13 @@ module.exports = toPooled(["command"], function glob(source, patterns)
                 [...(index > 0 ? ["-o"] : []), "-regex", pattern]));
     const filenames = [...output.matchAll(/([^\n]*)\n/g)]
         .map(([_, filename]) => filename);
-
+const tt = console.log(">> " + filenames);
     return filenames;
 }, { find, findInDocker, is, string });
 
+console.log(module.exports + "");
+
+/*
 const toPromise = require("@cause/cause/to-promise");
 
 (async function ()
@@ -40,15 +44,15 @@ const toPromise = require("@cause/cause/to-promise");
 const glob = module.exports;
 try {
     console.log("what?...");
-    console.log(await toPromise(Object, glob("/Users/tolmasky/Development/tonic", ["app/build"])));
-    console.log(await toPromise(Object, glob({ identifier: "aa0705969327" }, ["node-v10.15.3-linux-x64.tar.xz"])));
+    console.log(await toPromise(Object, glob("/Users/tolmasky/Development/tonic", ["app/build", "app/*.js"])));
+    console.log(await toPromise(Object, glob({ identifier: "aa0705969327" }, ["node-v10.15.3-linux-x64.tar.xz", "bin"])));
 }
 catch(e)
 {
     console.log(e);
 }
 
-})();
+})();*/
 
 /*
 

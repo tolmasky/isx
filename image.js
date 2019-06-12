@@ -34,7 +34,9 @@ image.compile = function compile (element)
     const type = Array.isArray(element) ? "array" : typeof element;
 
     if (type === "array")
-        return [].concat(...element.map(compile));
+        return []
+            .concat(...element.map(compile)
+            .filter(compiled => compiled !== false));
 
     if (type !== "function")
         throw Error(`Unexpected ${type} when evaluating isx.`);

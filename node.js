@@ -1,5 +1,6 @@
 const image = require("./image");
 const tarname = version => `node-v${version}-linux-x64.tar.xz`;
+const fs = require("fs");
 
 const node =
 {
@@ -28,7 +29,33 @@ const node =
             `rm "/${tarname(version)}"`
         ].join(" && ")}
         </run>
-    ]
+    ],
+
+    npm:
+    {
+        install: function ({ source, destination })
+        {
+            const packageJSON = require(`${source}/package.json`);
+            const dependencies = packageJSON.dependencies || { };
+
+            if (Object.keys(dependencies).length <= 0)
+                return false;
+
+            const name = packageJSON.name;console.log(name);
+            const description = `Just the dependencies of ${name}`;
+            const abbreviatedPackage = { name, description, dependencies, private: true };
+            const abbreviatedJSON = JSON.stringify(JSON.stringify(abbreviatedPackage));
+            const hasShrinkwrap = fs.existsSync(`${source}/npm-shrinkwrap.json`);
+
+            return [
+                <run>{`echo ${abbreviatedJSON} > ${destination}/package.json`}</run>,
+                hasShrinkwrap && <copy
+                    source = { `${source}/npm-shrinkwrap.json` }
+                    destination = { `${destination}/npm-shrinkwrap.json` } />,
+                <run>{`cd /${destination} && npm install`}</run>
+            ];
+        }
+    }
 }
 
 

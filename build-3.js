@@ -39,24 +39,11 @@ const build = toPooled(["map", "spawn", "write", "mkdirp", "tar"], function buil
 
     const patterns = List(string)([checksum]);
     const dockerfileSet = FileSet({ origin: dockerfiles, patterns });
-    const tarPath2 = tar(fileSets.push(dockerfileSet));
 
-//    const fileSets
-
-    const uu = console.log("WHAT: " + tarPath2);
-    const t = console.log(fileSets, contents);
-
-    const tarPath = (tarPath => spawn("gtar", ["-cvf",
-        tarPath,
-        "--absolute-names",
-//        ...workspaceTransform,
-        `--transform=s,${DockerfilePath},Dockerfile,`,
-//        ...source.checksums.keySeq(),
-        DockerfilePath]) && tarPath)
-        (`${CACHE}/tars/${checksum}.tar`);
+    const tarPath = tar(fileSets.push(dockerfileSet));
     const tarStream = fs.createReadStream(tarPath);
     const dockerOutput = spawn("docker",
-        ["build", "-"],
+        ["build", "-", "-f", checksum],
         { stdio: [tarStream, "pipe", "pipe"] });
     const id = dockerOutput.match(/([a-z0-9]{12})\n$/)[1];
 

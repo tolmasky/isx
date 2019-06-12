@@ -44,8 +44,9 @@ function getPrimitiveChecksum(type, value)
 function getListChecksum(type, value)
 {
     const [parameter] = parameterized.parameters(type);
+    const items = value.map(value => getChecksum(parameter, value));
 
-    return value.map(value => getChecksum(parameter, value));
+    return `List-${getSha512({ items })}`;
 }
 
 function getMapChecksum(type, value)

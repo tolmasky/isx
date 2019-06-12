@@ -1,4 +1,5 @@
 const image = require("./image");
+const tarname = version => `node-v${version}-linux-x64.tar.xz`;
 
 const node =
 {
@@ -9,18 +10,25 @@ const node =
             <node.keys/>
             <run>
                 {[
-                    `curl -SLO "https://nodejs.org/dist/v${version}/node-v${version}-linux-x64.tar.xz"`,
+                    `curl -SLO "https://nodejs.org/dist/v${version}/${tarname(version)}"`,
                     `curl -SLO "https://nodejs.org/dist/v${version}/SHASUMS256.txt.asc"`,
                     `gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc`,
-                    `grep " node-v${version}-linux-x64.tar.xz\\$" SHASUMS256.txt | sha256sum -c -`
+                    `grep " ${tarname(version)}\\$" SHASUMS256.txt | sha256sum -c -`
                 ].join(" && ")}
             </run>
         </image>,
 
-    install: ({ version, destination = "/usr/local" }) =>
-        <add    from = { <node.image version = { version } /> }
+    install: ({ version, destination = "/usr/local" }) => [
+        <copy   from = { <node.image version = { version } /> }
                 source = { `node-v${version}-linux-x64.tar.xz` }
-                destination = { destination } />
+                destination = "/" />,
+        <run>
+        {[
+            `tar -xJf "/${tarname(version)}" -C ${destination} --strip-components=1`,
+            `rm "/${tarname(version)}"`
+        ].join(" && ")}
+        </run>
+    ]
 }
 
 

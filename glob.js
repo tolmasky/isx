@@ -1,4 +1,5 @@
 const { is, string } = require("@algebraic/type");
+const { List } = require("@algebraic/collections");
 const { stdout: spawn } = require("@cause/task/spawn");
 const { join } = require("@cause/task/fs");
 const toPooled = require("@cause/task/transform/to-pooled");
@@ -31,12 +32,11 @@ module.exports = toPooled(["command"], function glob(fileSet)
             .map(globToRegExp)
             .flatMap((pattern, index) =>
                 [...(index > 0 ? ["-o"] : []), "-regex", pattern]));
-
     const filenames = [...output.matchAll(/([^\n]*)\n/g)]
         .map(([_, filename]) => filename);
-const tt = console.log(">> " + filenames);
-    return filenames;
-}, { find, findInDocker, is, string, join });
+
+    return List(string)(filenames);
+}, { find, findInDocker, is, string, join, List });
 
 console.log(module.exports + "");
 

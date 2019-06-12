@@ -40,25 +40,26 @@ module.exports = toPooled(["map", "spawn"], function tar(fileSets)
 {
     // Merge all the disparate file sets that share the same origin so we can
     // do one big glob for each of them.
-    const fileSetsByOrigin = fileSets
+    const flattenedFileSets = fileSets
         .groupBy(fileSet => fileSet.origin)
         .map((fileSets, origin) =>
             fileSets.flatMap(fileSet => fileSet.patterns))
-        .map((patterns, origin) => FileSet({ origin, patterns }));
+        .map((patterns, origin) => FileSet({ origin, patterns }))
+        .valueSeq().toList();
     const transforms = [
         `--transform=s,${join(join(CACHE, "dockerfiles") + "/")},,`,
-        ...fileSetsByOrigin.keySeq().map(
-            origin => is (string, origin) ?
+        ...flattenedFileSets.map(
+            ({ origin }) => is (string, origin) ?
                 `--transform=s,${join(origin + "/")},workspace/,` :
                 `--transform=s,${join(CACHE, origin.id + "/")},${origin.id}/,`)];
-    const filenames = map(extract, List(FileSet)(fileSetsByOrigin.values()));
+    const filenames = map(extract, flattenedFileSets).flatten();
     const checksum = getChecksum(List(string), filenames);
     const tarPath = (tarPath => spawn("gtar", ["-cvf",
         tarPath,
         "--absolute-names",
         ...transforms,
         ...filenames
-    ]) && tarPath)(join(CACHE, "tars", `${checksum}_real.tar`));
+    ]) && tarPath)(join(CACHE, "tars", `${checksum}.tar`));
 
     return tarPath;
 }, { map, glob, FileSet, extract, is, string, CACHE, List, getChecksum, spawn, join });

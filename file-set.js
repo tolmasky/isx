@@ -1,8 +1,10 @@
 const { data, union, string, type } = require("@algebraic/type");
+const { dirname } = require("path");
 const { List } = require("@algebraic/collections");
 const { None } = require("@algebraic/type/optional");
 const toPooled = require("@cause/task/transform/to-pooled");
 const { fromAsync } = require("@cause/task");
+const { join } = require("@cause/task/fs");
 const t_id = fromAsync(async x => (await 0, x));
 const Image = require("./image_");
 
@@ -20,12 +22,12 @@ module.exports = FileSet;
 const toOrigin = toPooled(["t_id", "build"], function toOrigin({ from, workspace })
 {
     if (from === None)
-        return t_id(["workspace/", workspace]);
+        return t_id(["workspace", workspace]);
 
     const build = buildR();
     const image = build(from);
 
-    return [`${image.id}/`, image];
+    return [image.id, image];
 }, { t_id, None, buildR: () => require("./build-3").build_ });
 
 FileSet.extract = function (workspace)
@@ -41,8 +43,13 @@ FileSet.extract = function (workspace)
         const patterns = List(string)([source]);
         const fileSet = FileSet({ origin, patterns });
 
-        return [fileSet, T({ source: `${tarBase}${source}`, destination })];
-    }, { type, None, List, FileSet, string, toOrigin, workspace, t_id });
+        return [fileSet, T({ source: join(tarBase, source), destination })];
+    }, { type, None, List, FileSet, string, toOrigin, workspace, t_id, join });
+}
+
+FileSet.from = function (dirname, filename)
+{
+    const origin = 1;
 }
 
 /*

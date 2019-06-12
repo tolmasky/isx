@@ -1,5 +1,6 @@
 const { is, string } = require("@algebraic/type");
 const { stdout: spawn } = require("@cause/task/spawn");
+const { join } = require("@cause/task/fs");
 const toPooled = require("@cause/task/transform/to-pooled");
 
 const find = (...args) => spawn("find", args);
@@ -16,23 +17,26 @@ module.exports = toPooled(["command"], function glob(fileSet)
     // trailing piece.
     const optional = local ? "\\{0,1\\}" : "?";
     const globToRegExp = glob =>
-        (local ? `${source}/${glob}` : `/${glob}`)
+        join(local ? origin : "/", glob)
             .replace(/[\?\.]/g, character => `\\${character}`)
             .replace(/\*/g, "[^\/]*") + `\\(/.*\\)${optional}`;
-const pp = console.log("OH! " + fileSet);
+
     const command = local ? find : findInDocker;
+    const context = (local ? origin : origin.id);
+    const contextNoSlash = context.replace(/\/$/, "");
     const output = command(
-        local ? origin : origin.id,
+        contextNoSlash,
         "-type", "f",
         ...patterns
             .map(globToRegExp)
             .flatMap((pattern, index) =>
                 [...(index > 0 ? ["-o"] : []), "-regex", pattern]));
+
     const filenames = [...output.matchAll(/([^\n]*)\n/g)]
         .map(([_, filename]) => filename);
 const tt = console.log(">> " + filenames);
     return filenames;
-}, { find, findInDocker, is, string });
+}, { find, findInDocker, is, string, join });
 
 console.log(module.exports + "");
 

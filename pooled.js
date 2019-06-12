@@ -34,15 +34,30 @@ const group = (f, list) =>
             .push(item),
         groups), { });
 
+const fStateTemplate = template.expression(`function %%name%%(%%parameters%%)
+{
+    return AsyncState.start(%%dependencies%%, %%then%%);
+}`);
+
+const fStateThenTemplate = template.expression(`dependencies => %%body%%`);
+
 function pooled(symbol, f)
 {
     const ReturnT = Pooled(functionOf.returns(f.type));
-   
+
+    const name = f.name;
     const fExpression = parseExpression(`(${f})`);
     const [dependencies, transformed] = reduce(symbol, fExpression);
+    const wrapped = fStateTemplate(
+    {
+        name: f.name,
+        parameters: fExpression.params,
+        dependencies: t.arrayExpression(dependencies.toArray()),
+        then: fStateThenTemplate({ body: transformed.body })
+    });
 
-    console.log(dependencies);
-    console.log(generate(transformed));
+    console.log(generate(wrapped));
+
     return x => x;
     return f;
 }
@@ -117,7 +132,7 @@ const handlers =
     {
         if (node.callee.name === symbol)
             return [
-                dependencies.concat(Dependency({ node })),
+                dependencies.concat(node),
                 toDependencyAccess({ index: t.valueToNode(dependencies.size) })];
 
         const [newDependencies, arguments] = reduce(symbol, node.arguments, dependencies);
@@ -159,3 +174,10 @@ f.type = functionOf (string, string);
 console.log(pooled("ls", f)("/Users/tolmasky/Desktop"));
 console.log("PLUS");
 
+
+
+
+function toCallForm(fExpression)
+{
+    fExpression.body.
+}

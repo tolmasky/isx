@@ -8,6 +8,7 @@ const toPooled = require("@cause/task/transform/to-pooled");
 const toPromise = require("@cause/cause/to-promise");
 const { stdout: spawn } = require("@cause/task/spawn");
 const fs = require("fs");
+const { mkdirp } = require("@cause/task/fs");
 const { fromAsyncCall } = require("@cause/task"); 
 const write = (path, ...args) =>
     fromAsyncCall(() =>
@@ -19,26 +20,68 @@ const isCopyOrAdd = instruction =>
     is(Instruction.add, instruction) || is(Instruction.copy, instruction);
 const getDependencies = instruction =>
     isCopyOrAdd(instruction) && instruction.from !== None ?
-        [instruction.from] : [];
+        [instruction] : [];
+        
+const CACHE = "./cache";
 
-const doIt = toPooled(["toSource", "spawn", "write", "rstream", "map"], function build(playbook)
+const SourceInstruction = 
+
+
+
+const toLocalInstruction = toPooled(["build", "spawn", "mkdirp"], function toLocalInstruction(instruction)
+{
+    if (!isCopyOrAdd(instruction))
+        return instruction;
+
+    const T = of(instruction);
+    const { from, source, destination } = instruction;
+
+    if (from === None)
+        return T({ source: `workspace/${source}`, destination });
+
+    const { checksum } = from;
+    const build = buildR();
+    const image = build(from);
+    const container = spawn("docker", ["create", image])
+        .match(/([^\n]*)\n$/)[1];
+    const destination = mkdirp(`${CACHE}/${checksum}/`);
+    const pattern = spawn("docker",
+    [
+        "cp",
+        `${container}:${source}`,
+        destination
+    ]) || `${CACHE}/${checksum}/${source}`;
+
+    return T({ source: pattern, destination });
+}, { buildR: () => build, spawn, console, mkdirp, CACHE, of });
+
+
+
+
+const build = toPooled(["toSource", "spawn", "write", "map", "extract"], function build(playbook)
 {
     const x = console.log("CALLED BUILD ON: " + playbook);
 
-    const { instructions, workspace } = playbook;
-    const a = console.log("GOING TO PASS IN: " + instructions.flatMap(getDependencies));
-    const dependencies = map(build, instructions.flatMap(getDependencies));
-//    const ohno = console.log("THe DEPENDENCIES ARE: " + dependencies);
-    const patterns = instructions
-        .filter(instruction =>
-            isCopyOrAdd(instruction) &&
-            instruction.from === None)
+    const instructions = map(playbook.instructions, toLocalInstruction);
+    const patterns = inputs
+        .filter(instruction => instruction.from === None && (true || dependencies))
         .map(instruction => instruction.source);
-//const b = console.log("THE PATTERNS ARE: " + patterns + " " + typeof patterns);
+    
+    
+    const { instructions, workspace } = playbook;
+    const inputs = instructions.filter(isCopyOrAdd);
+//const o = console.log("DEPENDENCIES COUNT: " + inputs.filter(instruction => instruction.from !== None).size);
+    const dependencies = map(extract,
+        inputs.filter(instruction => instruction.from !== None));
+const o2 = console.log("AND SO DEPENDENCIES IS: " + dependencies);
+
+    const patterns = inputs
+        .filter(instruction => instruction.from === None && (true || dependencies))
+        .map(instruction => instruction.source);
+//const b = console.log("PATTERNS ARE: " + patterns);
     const source = toSource(workspace, patterns);
-//    const x2 = console.log("T!!HE SOURCE IS: " + source);
+//const a = console.log("SOURCE IS " + source);
     const contents = image.render(playbook);
- //   const t = console.log("THE COUNTENTS ARE: " + contents);
     const DockerfilePath = write(`${tmp()}Dockerfile`, contents, "utf-8");
     const workspaceTransform = workspace === None ?
         [] : [`--transform=s,${workspace}/,workspace/,`];
@@ -53,11 +96,11 @@ const doIt = toPooled(["toSource", "spawn", "write", "rstream", "map"], function
     const dockerOutput = spawn("docker",
         ["build", "-"],
         { stdio: [tarStream, "pipe", "pipe"] });
-
+const i = console.log("MADE " + dockerOutput.match(/([a-z0-9]{12})\n$/)[1]);
     return dockerOutput.match(/([a-z0-9]{12})\n$/)[1];
-}, { toSource, List, string, spawn, console, write, tmp, is, image, Instruction, fs, None, isCopyOrAdd, getDependencies, map });
+}, { toSource, List, string, spawn, console, write, tmp, is, image, Instruction, fs, None, isCopyOrAdd, map, extract });
 
-module.exports = async function build({ filename, push, sequential }, properties)
+module.exports = async function build_({ filename, push, sequential }, properties)
 {
 try {
     FIXME_registerGenericJSX();
@@ -67,7 +110,7 @@ try {
         .concat(typeof result === "function" ?
             result(properties) : result));
     const images = fImages.map(fImage => image.compile(fImage));
-    const tarPath = await toPromise(Object, doIt(images.get(0)));
+    const tarPath = await toPromise(Object, build(images.get(0)));
 
     console.log(tarPath);
     }
@@ -125,6 +168,30 @@ function FIXME_registerGenericJSX()
 
     global.node = require("./node");
 }
+
+/*
+const extract = toPooled(["build", "spawn", "mkdirp"], function extract({ from, source })
+{
+    const a = console.log("EXTRACTING " + source);
+    const { checksum } = from;
+    const build = buildR();
+    const image = build(from);
+    const container = spawn("docker", ["create", image])
+        .match(/([^\n]*)\n$/)[1];
+    const destination = mkdirp(`${CACHE}/${checksum}/`);
+    const result = spawn("docker",
+    [
+        "cp",
+        `${container}:${source}`,
+        destination
+    ]);
+    const t = console.log("AND NOW: " + destination + " " + result);
+
+    return t;
+}, { buildR: () => build, spawn, console, mkdirp, CACHE });
+
+console.log(extract+"");
+*/
 
     //const status = Status.fromImage(images.get(0));
 

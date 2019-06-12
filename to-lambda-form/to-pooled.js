@@ -16,7 +16,6 @@ module.exports = function (symbol, f, free)
     const { parseExpression } = require("@babel/parser");
     const [paths, transformed] = fromAST(symbol, parseExpression(`(${f})`));    
     const inserted = wrap(paths, transformed);
-    console.log(`return ${generate(inserted).code}`);
     const code = `return ${generate(inserted).code}`;
 
     return (new Function(code))();
@@ -81,21 +80,38 @@ OptionalDependencyPath.concat = (lhs, rhs, key) =>
         children: lhs.children.set(key, rhs)
     });
 
+OptionalDependencyPath.merge = (lhs, rhs) =>
+    DependencyPath.Parent(
+    {
+        count: lhs.count + rhs.count,
+        children: lhs.children.merge(rhs.children)
+    });
+
 function hasDependencies(path)
 {
     return path !== OptionalDependencyPath.None;
 }
 
+function mapAccumField(mapAccumNode, field, node)
+{
+    const [dependencies, mapped] = mapAccumNode(node[field]);
+
+    return [DependencyPath.wrap(field, dependencies), mapped];
+}
+
 function fromAST(symbol, fAST)
 {
     return babelMapAccum(OptionalDependencyPath, babelMapAccum.fromDefinitions(
-    {
+    {/*
+        FunctionExpression()
+        {
+        },*/
         CallExpression(mapAccumNode, expression)
         {
-            if (expression.callee.name === symbol)
-                return [DependencyPath.Root, expression];
+//            if (expression.callee.name === symbol)
+//                return [DependencyPath.Root, expression];
             
-            return mapAccumNode.fallback(mapAccumNode, expression);
+            //return mapAccumNode.fallback(mapAccumNode, expression);
 
             // actually if part of callee's parameters...
             const [calleeDependencies, callee] =
@@ -103,20 +119,24 @@ function fromAST(symbol, fAST)
                     expression.callee.name === symbol ?
                         [DependencyPath.Root, expression.callee] :
                         [OptionalDependencyPath.None, expression.callee] :
-                    mapAccumNode(expression.callee);
-            const [argumentsDependencies, arguments] = mapAccumNode(expression.arguments);
+                    mapAccumField(mapAccumNode, "callee", expression);
+            const [argumentsDependencies, arguments] =
+                mapAccumField(mapAccumNode, "arguments", expression);
             const updated = { ...expression, callee, arguments };
 
-            if (!hasDependencies(calleeDependencies))
-                return [DependencyPath.wrap("arguments", argumentsDependencies), updated];
+            if (calleeDependencies !== DependencyPath.Root)
+                return [argumentsDependencies, updated];
 
             if (!hasDependencies(argumentsDependencies)) 
-                return [DependencyPath.wrap("callee", calleeDependencies), updated];
+                return [calleeDependencies, updated];
+        
+            return [argumentsDependencies, updated];
+console.log("OK!" + generate(updated).code);
+            const inserted = wrap(argumentsDependencies, updated);
 
-            const inserted = wrap(DependencyPath.wrap("arguments", argumentsDependencies), updated);
 console.log(inserted);
 console.log(generate(inserted).code+"");
-            return [DependencyPath.wrap("callee", calleeDependencies), inserted];
+            return [calleeDependencies, inserted];
             
 //            /*DependencyPath.wrap(["callee", "object", "arguments", 0], calleeDependencies)*/, inserted];
         }
@@ -128,7 +148,7 @@ const wrap = (function ()
     const { expression: template } = require("@babel/template");
     const toImplicitlyPooledState = template(`
         (%%parameters%%) =>
-            ImplicitlyPooledState(dependencies => %%f%%).initialize(%%args%%)
+            AsyncState(dependencies => %%f%%).initialize(%%args%%)
     `);
     const valueToExpression = require("../value-to-expression");
 

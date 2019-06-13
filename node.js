@@ -1,6 +1,8 @@
 const image = require("./image");
+const playbook = image;
 const tarname = version => `node-v${version}-linux-x64.tar.xz`;
 const fs = require("fs");
+const { join } = require("@cause/task/fs");
 
 const node =
 {
@@ -33,29 +35,43 @@ const node =
 
     npm:
     {
-        install: function ({ source, destination })
-        {
-            const packageJSON = require(`${source}/package.json`);
-            const dependencies = packageJSON.dependencies || { };
-
-            if (Object.keys(dependencies).length <= 0)
-                return false;
-
-            const name = packageJSON.name;console.log(name);
-            const description = `Just the dependencies of ${name}`;
-            const abbreviatedPackage = { name, description, dependencies, private: true };
-            const abbreviatedJSON = JSON.stringify(JSON.stringify(abbreviatedPackage));
-            const hasShrinkwrap = fs.existsSync(`${source}/npm-shrinkwrap.json`);
-
-            return [
-                <run>{`echo ${abbreviatedJSON} > ${destination}/package.json`}</run>,
-                hasShrinkwrap && <copy
-                    source = { `${source}/npm-shrinkwrap.json` }
-                    destination = { `${destination}/npm-shrinkwrap.json` } />,
-                <run>{`cd /${destination} && npm install`}</run>
-            ];
-        }
+        install: ({ source, destination, version }) =>
+            <copy   from = { <node.npm.install.playbook
+                                { ...{ source, version } } /> }
+                    source = "app/node_modules"
+                    destination = { (console.log(version + "-->" + destination + "/"), join(destination, "/")) } />
     }
+}
+
+
+node.npm.install.playbook = function ({ version, source })
+{
+    const packageJSON = require(`${source}/package.json`);
+    const dependencies = packageJSON.dependencies || { };
+
+    if (Object.keys(dependencies).length <= 0)
+        return false;
+
+    const name = "ephemeral-dependencies-package";
+    const description = `Just the dependencies.`;
+    const abbreviatedPackage = { name, description, dependencies, private: true };
+    const abbreviatedJSON = JSON.stringify(JSON.stringify(abbreviatedPackage));
+    const hasShrinkwrap = fs.existsSync(`${source}/npm-shrinkwrap.json`);
+
+    return  <playbook from = "buildpack-deps:jessie" tag = "BUILDING-2" >
+                <node.install version = { version }/>
+
+                <run>mkdir app</run>
+                <run>{`echo ${abbreviatedJSON} > app/package.json`}</run>
+
+                {   hasShrinkwrap &&
+                    <copy
+                        source = { `${source}/npm-shrinkwrap.json` }
+                        destination = "app/npm-shrinkwrap.json" />
+                }
+
+                <run>{`cd /app && npm install`}</run>
+            </playbook>;
 }
 
 

@@ -30,6 +30,7 @@ const build = toPooled(["map", "spawn", "write", "mkdirp", "tar"], function buil
 
     const fromExtractions = image({ ...playbook, instructions });
     const contents = image.render(fromExtractions);
+    const tt = console.log("THE DOCKERFILE WILL BE " + contents);
     const checksum = getChecksum(string, contents);
     const dockerfiles = join(CACHE, "dockerfiles");
     const DockerfilePath = write(

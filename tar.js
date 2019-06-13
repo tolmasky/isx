@@ -17,11 +17,11 @@ const copy = toPooled(["mkdirp", "spawn"], function copy(container, filename, de
     const parent = mkdirp(dirname(join(destinationBase, filename)));
     const destination = join(parent, basename(filename));
     const source = `${container}:${filename}`;
-
+const bb = console.log(["docker", "cp", source, destination].join(" "));
     return spawn("docker", ["cp", source, destination]) || destination;
 }, { dirname, basename, join, mkdirp, spawn });
 
-const extract = toPooled(["glob", "mkdirp", "spawn", "map"], function extract(fileSet)
+const extract = toPooled(["glob", "mkdirp", "spawn", "map", "copy"], function extract(fileSet)
 {
     const { origin } = fileSet;
     const filenames = glob(fileSet);
@@ -29,12 +29,26 @@ const extract = toPooled(["glob", "mkdirp", "spawn", "map"], function extract(fi
     if (is(string, fileSet.origin))
         return filenames;
 
-    const identifier = origin.id;
-    const container = lastline(spawn("docker", ["create", origin.id]));
     const destination = join(CACHE, origin.id);
+    const oo = console.log("I WISH TO TAR FROM " + origin.id + "\n" + filenames.join("\n"));
+    const stdio = [toReadableStream(filenames.join("\n")), "pipe", "pipe"];
+    const container_name = origin.id + Date.now();
+    const ii = console.log("GOING TO USE CONTAINER " + container_name);
+    const remoteTarPath = (tarPath => spawn("docker",
+    [
+        "run", "-i", "--name", container_name, origin.id,
+        "tar", "-cvf", tarPath, "--files-from", "-"
+    ], { stdio }) && tarPath)(`/${origin.id}.tar`);
+    const aa = console.log("REMOTE PATH: " + remoteTarPath);
+    const tarPath = copy(container_name, remoteTarPath, "/tmp");
+    const cc = console.log("RESULT PATH: " + tarPath + " to " + destination);
+    const r2 = mkdirp(destination);
+    const ccc = console.log("MK: " + r2);
+    const result = spawn("tar", ["-xf", tarPath, "-C", r2]) || destination;
+    const dd = console.log("DID RESULT WITH: " + result);
 
-    return map(filename => copy(container, filename, destination), filenames);
-}, { glob, is, string, CACHE, spawn, map, lastline, copy, join });
+    return result;
+}, { glob, is, string, CACHE, spawn, map, lastline, copy, join, mkdirp, toReadableStream });
 
 module.exports = toPooled(["map", "spawn"], function tar(fileSets)
 {
@@ -53,6 +67,7 @@ module.exports = toPooled(["map", "spawn"], function tar(fileSets)
                 `--transform=s,${join(origin + "/")},workspace/,` :
                 `--transform=s,${join(CACHE, origin.id + "/")},${origin.id}/,`)];
     const filenames = map(extract, flattenedFileSets).flatten();
+    const filen = console.log("INCLUDING: " + filenames + " " + fileSets);
     const checksum = getChecksum(List(string), filenames);
     const tarPath = (tarPath => spawn("gtar", ["-cvf",
         tarPath,
@@ -65,7 +80,15 @@ module.exports = toPooled(["map", "spawn"], function tar(fileSets)
 }, { map, glob, FileSet, extract, is, string, CACHE, List, getChecksum, spawn, join });
 
 
+function toReadableStream(string)
+{
+    const stream = new (require("stream").Readable);
 
+    stream.push(string);
+    stream.push(null);
+
+    return stream;
+}
 
 
 /*

@@ -28,7 +28,7 @@ const toOrigin = toPooled(["t_id", "build"], function toOrigin({ from, workspace
     const image = build(from);
 
     return [image.id, image];
-}, { t_id, None, buildR: () => require("./build-3").build_ });
+}, { t_id, None, buildR: () => require("./build").build_ });
 
 FileSet.extract = function (workspace)
 {

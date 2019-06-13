@@ -30,7 +30,6 @@ const extract = toPooled(["glob", "mkdirp", "spawn", "map", "copy"], function ex
         return filenames;
 
     const destination = join(CACHE, origin.id);
-    const oo = console.log("I WISH TO TAR FROM " + origin.id + "\n" + filenames.join("\n"));
     const stdio = [toReadableStream(filenames.join("\n")), "pipe", "pipe"];
     const container_name = origin.id + Date.now();
     const ii = console.log("GOING TO USE CONTAINER " + container_name);

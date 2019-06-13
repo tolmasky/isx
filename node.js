@@ -1,5 +1,4 @@
-const image = require("./image");
-const playbook = image;
+const playbook = require("./playbook");
 const tarname = version => `node-v${version}-linux-x64.tar.xz`;
 const fs = require("fs");
 const { join } = require("@cause/task/fs");
@@ -8,8 +7,8 @@ const node =
 {
     keys: () => <run>{keys}</run>,
 
-    image: ({ version }) =>
-        <image tag = { `node-${version}` } from = "buildpack-deps:jessie" >
+    playbook: ({ version }) =>
+        <playbook tag = { `node-${version}` } from = "buildpack-deps:jessie" >
             <node.keys/>
             <run>
                 {[
@@ -19,10 +18,10 @@ const node =
                     `grep " ${tarname(version)}\\$" SHASUMS256.txt | sha256sum -c -`
                 ].join(" && ")}
             </run>
-        </image>,
+        </playbook>,
 
     install: ({ version, destination = "/usr/local" }) => [
-        <copy   from = { <node.image version = { version } /> }
+        <copy   from = { <node.playbook version = { version } /> }
                 source = { `node-v${version}-linux-x64.tar.xz` }
                 destination = "/" />,
         <run>

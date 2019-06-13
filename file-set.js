@@ -6,7 +6,7 @@ const toPooled = require("@cause/task/transform/to-pooled");
 const { fromAsync } = require("@cause/task");
 const { join } = require("@cause/task/fs");
 const t_id = fromAsync(async x => (await 0, x));
-const Image = require("./image_");
+const Image = require("./image");
 
 const Origin = union `Origin` (
     string,

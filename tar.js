@@ -9,7 +9,7 @@ const FileSet = require("./file-set");
 const { lastline, stdout: spawn } = require("@cause/task/spawn");
 const { join } = require("@cause/task/fs");
 const getChecksum = require("./get-checksum");
-const CACHE = require("path").resolve("./cache");
+const CACHE = require("path").resolve("../cache");
 
 
 const copy = toPooled(["mkdirp", "spawn"], function copy(container, filename, destinationBase)

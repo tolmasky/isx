@@ -2,12 +2,12 @@ const { data, union, string, Maybe, type } = require("@algebraic/type");
 const { Optional, None } = require("@algebraic/type/optional");
 const { base, getArguments } = require("generic-jsx");
 
-const image = () => require("./image");
+const getPlaybook = () => require("./playbook");
 
 
 const instruction = union `instruction` (
     data `add` (
-        from        => [Optional(image()), None],
+        from        => [Optional(getPlaybook()), None],
         source      => string,
         destination => string ),
 
@@ -15,7 +15,7 @@ const instruction = union `instruction` (
         command     => string ),
 
     data `copy` (
-        from        => [Optional(image()), None],
+        from        => [Optional(getPlaybook()), None],
         source      => string,
         destination => string ),
 
@@ -78,7 +78,7 @@ instruction.copy.fromXML = function (element)
 {
     const args = getArguments(element);
     const f = base(element);
-    const from = args.from ? image().compile(args.from) : None;
+    const from = args.from ? getPlaybook().compile(args.from) : None;
     
     return f({ ...args, from });
 }

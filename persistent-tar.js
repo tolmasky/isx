@@ -51,6 +51,9 @@ module.exports = toPooled(["spawn", "mkdirp"], function persistentTar(root, pers
     return gtar || tarname;
 }, { FileSet, getChecksum, join, spawn, sync, uuid, mkdirp });
 
+module.exports.FileSet = FileSet;
+
+/*
 (async function ()
 {
 try {
@@ -66,4 +69,4 @@ try {
     {
         console.log(e);
     }
-})();
+})();*/

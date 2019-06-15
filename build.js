@@ -1,5 +1,5 @@
 const { of, is, Maybe, union, string, getUnscopedTypename } = require("@algebraic/type");
-const { List } = require("@algebraic/collections");
+const { List, OrderedMap, OrderedSet } = require("@algebraic/collections");
 const Playbook = require("./playbook");
 const Instruction = require("./instruction");
 const { None } = require("@algebraic/type/optional");
@@ -14,9 +14,10 @@ const CACHE = require("path").resolve("../cache");
 const FileSet = require("./file-set");
 const Image = require("./image");
 const tar = require("./tar");
+const persistentTar = require("./persistent-tar");
 
 
-const build = toPooled(["map", "spawn", "write", "mkdirp", "tar"], function build(playbook)
+const build = toPooled(["map", "spawn", "write", "mkdirp", "persistentTar"], function build(playbook)
 {
     const __announce__ = console.log(`BUILD ${playbook.tags}`);
     const { workspace } = playbook;
@@ -29,27 +30,26 @@ const build = toPooled(["map", "spawn", "write", "mkdirp", "tar"], function buil
         ], [List(FileSet)(), List(Instruction)()]);
 
     const fromExtractions = Playbook({ ...playbook, instructions });
-    const contents = Playbook.render(fromExtractions);
-    const tt = console.log("THE DOCKERFILE WILL BE " + contents);
-    const checksum = getChecksum(string, contents);
-    const dockerfiles = join(CACHE, "dockerfiles");
-    const DockerfilePath = write(
-        join(dockerfiles, checksum),
-        contents,
-        "utf-8");
-
-    const patterns = List(string)([checksum]);
-    const dockerfileSet = FileSet({ origin: dockerfiles, patterns });
-
-    const tarPath = tar(fileSets.push(dockerfileSet));
+    const dockerfile = Buffer.from(Playbook.render(fromExtractions), "utf-8");
+    const fileSet = persistentTar.FileSet({
+        data: OrderedMap(string, Buffer)([["Dockerfile", dockerfile]]),
+        fromLocal: OrderedMap(string, string)(),
+        fromImages: OrderedMap(string, OrderedSet(string))()
+    });
+    const aa = console.log(fileSet);
+    const tarPath = persistentTar(
+        "/Users/tolmasky/Development/tonic",
+        "/Users/tolmasky/Development/cache",
+        fileSet
+    );
     const tarStream = fs.createReadStream(tarPath);
     const dockerOutput = spawn("docker",
-        ["build", "-", "-f", checksum],
+        ["build", "-"],
         { stdio: [tarStream, "pipe", "pipe"] });
     const id = dockerOutput.match(/([a-z0-9]{12})\n$/)[1];
 
     return Image({ id });
-}, { CACHE, getChecksum, FileSet, List, string, spawn, console, write, is, Playbook, Instruction, fs, None, map, of, mkdirp, Image, tar, join });
+}, { CACHE, getChecksum, FileSet, List, string, spawn, console, write, is, Playbook, Instruction, fs, None, map, of, mkdirp, Image, tar, join, Buffer, persistentTar, OrderedMap, OrderedSet });
 
 module.exports = async function build_({ filename, push, sequential }, properties)
 {
@@ -61,7 +61,7 @@ module.exports = async function build_({ filename, push, sequential }, propertie
             .concat(typeof result === "function" ?
                 result(properties) : result));
         const playbooks = fPlaybooks.map(fPlaybook => Playbook.compile(fPlaybook));
-        const playbook = playbooks.get(0);
+        const playbook = playbooks.get(0);console.log(playbooks);
         const image = await toPromise(Object, build(playbook));
 
         console.log(image);

@@ -3,6 +3,7 @@ const { None } = require("@algebraic/type/optional");
 const { List, OrderedMap, OrderedSet } = require("@algebraic/collections");
 const toPooled = require("@cause/task/transform/to-pooled");
 const map = require("@cause/task/map");
+const getChecksum = require("./get-checksum");
 
 const { include } = require("./instruction");
 const glob = require("./glob");
@@ -81,7 +82,8 @@ const toImage = toPooled(["fromPlaybook"], function (playbook, patterns)
     const pp = console.log("DOING " + playbook + " " + patterns);
     const fromPlaybook = FileSet.fromPlaybook;
     const fileSet = fromPlaybook(playbook);
-    const rr = console.log("FIGURING OUT INTERNAL FILE SET " + fileSet);
+    const ptag = FileSet.toPersistentTag(fileSet);
+    const rr = console.log("FIGURING OUT INTERNAL FILE SET " + fileSet + " ptag: " + ptag);
     
     return 10;
 /*

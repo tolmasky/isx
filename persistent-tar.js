@@ -7,6 +7,7 @@ const { stdout: spawn } = require("@cause/task/spawn");
 
 const uuid = require("uuid");
 const getChecksum = require("./get-checksum");
+const mktmp = () => mkdirp(join("/tmp", "isx", uuid.v4()));
 
 const sync = (fs =>
     ({ exists: fs.existsSync, write: fs.writeFileSync }))
@@ -20,15 +21,15 @@ const FileSet = data `FileSet` (
     fromImages  => OrderedMap(string, OrderedSet(string)) );
 
 
-module.exports = toPooled(["spawn", "mkdirp"], function persistentTar(root, persistent, fileSet)
+module.exports = toPooled(["spawn", "mkdirp", "mktmp"], function persistentTar(root, persistent, fileSet)
 {
     const checksum = getChecksum(FileSet, fileSet);
-    const tarname = join(persistent, `${checksum}.tar`);
+    const tarname = join(mkdirp(persistent), `${checksum}.tar`);
 
     if (sync.exists(tarname))
         return tarname;
 
-    const workspace = mkdirp(join("/tmp", uuid.v4()));
+    const workspace = mktmp();
     const filenames = fileSet.data.entrySeq()
         .map(([tarPath, buffer]) =>
             [tarPath, join(workspace, tarPath), buffer])
@@ -48,11 +49,11 @@ module.exports = toPooled(["spawn", "mkdirp"], function persistentTar(root, pers
             `--transform=s,${join(persistent, origin, "/")},/${origin}/,`),
         ...filenames]);
 
-    return gtar || tarname;
-}, { FileSet, getChecksum, join, spawn, sync, uuid, mkdirp });
+    return (gtar, tarname);
+}, { FileSet, getChecksum, join, spawn, sync, mkdirp, mktmp });
 
 module.exports.FileSet = FileSet;
-
+console.log(module.exports + "");
 /*
 (async function ()
 {

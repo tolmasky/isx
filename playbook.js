@@ -37,17 +37,20 @@ Playbook.compile = function compile (element)
     if (element === false)
         return false;
 
-    const type = Array.isArray(element) ? "array" : typeof element;
+    const primitive = Array.isArray(element) ? "array" : typeof element;
 
-    if (type === "array")
+    if (primitive === "array")
         return []
             .concat(...element.map(compile)
             .filter(compiled => compiled !== false));
 
-    if (type !== "function")
+    if (primitive === "function")
+        return compile(element());
+
+    if (!is(Instruction, element))
         throw Error(`Unexpected ${type} when evaluating isx.`);
 
-    return compile(element());
+    return element;
 }
 
 Playbook.fromXML = function (properties)

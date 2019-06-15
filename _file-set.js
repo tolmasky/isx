@@ -11,6 +11,8 @@ const { sep, resolve, relative } = require("path");
 const common = (lhs, rhs) => lhs
     .slice(0, lhs.findIndex((component, index) => component != rhs[index]))
 
+const Playbook = require("./playbook");
+
 const FileSet = data `FileSet` (
     data        => OrderedMap(string, Buffer),
     fromLocal   => OrderedMap(string, string),
@@ -79,16 +81,23 @@ module.exports = toPooled(["toLocal"], function (playbook)
     const [root, entriesRelativeToRoot, fromLocal] =
         toLocal(playbook.workspace, entriesRelativeToWorkspace);
 
+    const instructions = entriesRelativeToRoot
+        .reduce((instructions, [index, instruction]) => instructions
+            .update(index, previous => include({ ...previous, source: instruction.source })),
+        playbook.instructions);
+    const modified = Playbook({ ...playbook, instructions });
+    const dockerfile = Buffer.from(Playbook.render(modified), "utf-8");
+
     const fileSet = FileSet(
     {
-        data: OrderedMap(string, Buffer)(),
+        data: OrderedMap(string, Buffer)([["Dockerfile", dockerfile]]),
         fromLocal,
         fromImages: OrderedMap(string, OrderedSet(string))()
     });
     const aa = console.log(root, entriesRelativeToRoot, fileSet);
 
     return aa;
-}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet });
+}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook });
 
 
 

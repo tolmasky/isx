@@ -2,6 +2,7 @@ const { is, data, string, number } = require("@algebraic/type");
 const { None } = require("@algebraic/type/optional");
 const { List, OrderedMap, OrderedSet } = require("@algebraic/collections");
 const toPooled = require("@cause/task/transform/to-pooled");
+const map = require("@cause/task/map");
 
 const { include } = require("./instruction");
 const glob = require("./glob");
@@ -18,6 +19,11 @@ const FileSet = data `FileSet` (
     fromLocal   => OrderedMap(string, string),
     fromImages  => OrderedMap(string, OrderedSet(string)) );
 
+
+FileSet.toPersistentTag = function (fileSet)
+{
+    return `@isx/${getChecksum(FileSet, fileSet)}`;
+}
 
 const toShasumMap = (function ()
 {
@@ -48,6 +54,9 @@ const toShasumMap = (function ()
 
 const toLocal = toPooled(["glob", "toShasumMap"], function (workspace, workspacePatterns)
 {
+    if (workspacePatterns.size <= 0)
+        return ["/", List(string)(), OrderedMap(string, string)()];
+
     // We are calculating the root from the source PATTERNS instead of the
     // resultant files. This is only OK if we don't allow .. to follow **.
     const absolutePatterns = workspacePatterns
@@ -57,6 +66,7 @@ const toLocal = toPooled(["glob", "toShasumMap"], function (workspace, workspace
             common(root, pattern.split(sep)),
             join(workspace, "/").split(sep))
         .join(sep);
+    const x = console.log("SO FAR: " + root);
     const rootPatterns = absolutePatterns
         .map(pattern => relative(workspace, pattern));
     const filenames = glob({ origin: root, patterns: rootPatterns })
@@ -64,11 +74,50 @@ const toLocal = toPooled(["glob", "toShasumMap"], function (workspace, workspace
     const fromLocal = toShasumMap({ root, filenames });
 
     return [root, rootPatterns, fromLocal];
-}, { common, join, sep, relative, resolve, glob, toShasumMap });
+}, { common, join, sep, relative, resolve, glob, toShasumMap, List, string, OrderedMap });
+
+const toImage = toPooled(["fromPlaybook"], function (playbook, patterns)
+{
+    const pp = console.log("DOING " + playbook + " " + patterns);
+    const fromPlaybook = FileSet.fromPlaybook;
+    const fileSet = fromPlaybook(playbook);
+    const rr = console.log("FIGURING OUT INTERNAL FILE SET " + fileSet);
+    
+    return 10;
+/*
+    const build = buildR();
+    
+    
+    const image = build(playbook);
+    const filenames = glob(fileSet);
+
+
+    const destination = join(CACHE, origin.id);
+    const stdio = [toReadableStream(filenames.join("\n")), "pipe", "pipe"];
+    const container_name = origin.id + Date.now();
+    const ii = console.log("GOING TO USE CONTAINER " + container_name);
+    const remoteTarPath = (tarPath => spawn("docker",
+    [
+        "run", "-i", "--name", container_name, origin.id,
+        "tar", "-cvf", tarPath, "--files-from", "-"
+    ], { stdio }) && tarPath)(`/${origin.id}.tar`);
+    const aa = console.log("REMOTE PATH: " + remoteTarPath);
+    const tarPath = copy(container_name, remoteTarPath, "/tmp");
+    const cc = console.log("RESULT PATH: " + tarPath + " to " + destination);
+    const r2 = mkdirp(destination);
+    const ccc = console.log("MK: " + r2);
+    const result = spawn("tar", ["-xf", tarPath, "-C", r2]) || destination;
+    const dd = console.log("DID RESULT WITH: " + result);
+
+    return result;
+
+
+    return [image.id, image];*/
+}, { FileSet });
 
 
 
-module.exports = toPooled(["toLocal"], function (playbook)
+const fromPlaybook = toPooled(["toLocal", "map"], function (playbook)
 {
     const { instructions } = playbook;
     const includes = instructions.entrySeq()
@@ -80,6 +129,13 @@ module.exports = toPooled(["toLocal"], function (playbook)
     const [root, rootPatterns, fromLocal] = toLocal(
         playbook.workspace,
         indexesLocal.map(index => instructions.get(index).source));
+    const aa2 = console.log("HOW FAR?... " + root);
+    const fromImages = map(
+        ([playbook, indexes]) => toImage(
+            playbook,
+            indexes.map(index => instructions.get(index).source)),
+        grouped.remove(None).entrySeq().toList());
+    //const fromImages = map(grtoImage
 
     const rootInstructions = rootPatterns
         .reduce((instructions, source, index) =>
@@ -100,8 +156,11 @@ module.exports = toPooled(["toLocal"], function (playbook)
     const aa = console.log(root, rootPatterns, fileSet);
 
     return fileSet;
-}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook, number });
+}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook, number, toImage, map });
 
+FileSet.fromPlaybook = fromPlaybook;
+
+module.exports = fromPlaybook;
 
 
 /*

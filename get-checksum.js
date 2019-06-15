@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 const { data, union, is, primitive, parameterized, getKind } = require("@algebraic/type");
-const { OrderedMap, Map, List } = require("@algebraic/collections");
+const { OrderedMap, OrderedSet, Map, List } = require("@algebraic/collections");
 const fail = type => { throw Error(`Can't get checksum of objects of type ${type}`); }
 
 
@@ -11,9 +11,11 @@ function getChecksum(type, object)
     return  parameterized.is(List, type) ? getListChecksum(type, object) :
             parameterized.is(Map, type) ? getMapChecksum(type, object) :
             parameterized.is(OrderedMap, type) ? getOrderedMapChecksum(type, object) :
+            parameterized.is(OrderedSet, type) ? getOrderedSetChecksum(type, object) :
             kind === data ? getDataChecksum(type, object) :
             kind === union ? getUnionChecksum(type, object) :
             kind === primitive ? getPrimitiveChecksum(type, object) :
+            Buffer === type ? getSha512(object) :
             fail(type);
 }
 
@@ -71,10 +73,18 @@ function getOrderedMapChecksum(type, value)
     return `OrderedMap-${getSha512({ items })}`;
 }
 
+function getOrderedSetChecksum(type, value)
+{
+    const [parameter] = parameterized.parameters(type);
+    const items = value.map(value => getChecksum(parameter, value)).toArray();
+
+    return `OrderedSet-${getSha512({ items })}`;
+}
+
 function getSha512(value)
 {
     return crypto.createHash("sha512")
-        .update(JSON.stringify(value))
+        .update(Buffer.isBuffer(value) ? value : JSON.stringify(value))
         .digest("base64")
         .replace(/\//g, "_");
 }

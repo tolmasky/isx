@@ -2,7 +2,7 @@ const { resolve } = require("path");
 
 const { is, data, string } = require("@algebraic/type");
 const { List } = require("@algebraic/collections");
-const { None } = require("@algebraic/type/optional");
+const { Optional, None } = require("@algebraic/type/optional");
 
 const { base, getArguments } = require("generic-jsx");
 
@@ -14,6 +14,7 @@ const extract = (key, properties, fallback) =>
 
 
 const Playbook = data `Playbook` (
+    workspace       => [Optional(string), None],
     from            => string,
     tags            => [List(string), List(string)()],
     instructions    => List(Instruction) );
@@ -66,15 +67,9 @@ Playbook.fromXML = function (properties)
 
     const children = extract("children", properties, []);
     const workspace = extract("workspace", properties, None);
+    const instructions = List(string)(Playbook.compile(children));
 
-    const instructions = List(Instruction)(Playbook.compile(children)
-        .map(instruction =>
-            !is(include, instruction) || instruction.from !== None ?
-                instruction :
-                include({ ...instruction,
-                    source: resolve(workspace, instruction.source) })));
-
-    return Playbook({ from, tags, instructions });
+    return Playbook({ from, workspace, tags, instructions });
 }
 
 

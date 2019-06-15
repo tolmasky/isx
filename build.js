@@ -15,9 +15,10 @@ const FileSet = require("./file-set");
 const Image = require("./image");
 const tar = require("./tar");
 const persistentTar = require("./persistent-tar");
+const BUILD = require("./_file-set");
 
 
-const build = toPooled(["map", "spawn", "write", "mkdirp", "persistentTar"], function build(playbook)
+const build = toPooled(["map", "spawn", "write", "mkdirp", "persistentTar", "BUILD"], function build(playbook)
 {
     const __announce__ = console.log(`BUILD ${playbook.tags}`);
     const { workspace } = playbook;
@@ -29,6 +30,8 @@ const build = toPooled(["map", "spawn", "write", "mkdirp", "persistentTar"], fun
             instructions.push(instruction)
         ], [List(FileSet)(), List(Instruction)()]);
 
+
+    const x = BUILD(playbook);
     const fromExtractions = Playbook({ ...playbook, instructions });
     const dockerfile = Buffer.from(Playbook.render(fromExtractions), "utf-8");
     const fileSet = persistentTar.FileSet({
@@ -49,7 +52,7 @@ const build = toPooled(["map", "spawn", "write", "mkdirp", "persistentTar"], fun
     const id = dockerOutput.match(/([a-z0-9]{12})\n$/)[1];
 
     return Image({ id });
-}, { CACHE, getChecksum, FileSet, List, string, spawn, console, write, is, Playbook, Instruction, fs, None, map, of, mkdirp, Image, tar, join, Buffer, persistentTar, OrderedMap, OrderedSet });
+}, { CACHE, getChecksum, FileSet, List, string, spawn, console, write, is, Playbook, Instruction, fs, None, map, of, mkdirp, Image, tar, join, Buffer, persistentTar, OrderedMap, OrderedSet, BUILD });
 
 module.exports = async function build_({ filename, push, sequential }, properties)
 {

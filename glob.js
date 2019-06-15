@@ -9,9 +9,8 @@ const findInDocker = (tag, ...args) =>
     spawn("docker", ["run", "--rm", tag, "find", "/", ...args]);
 
 
-module.exports = toPooled(["command"], function glob(fileSet)
+module.exports = toPooled(["command"], function glob({ origin, patterns })
 {
-    const { origin, patterns } = fileSet;
     const local = is(string, origin);
 
     // FIXME: We should do "-o -empty -type d" with the same pattern without the

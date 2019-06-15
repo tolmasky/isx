@@ -1,4 +1,4 @@
-const { is, data, string } = require("@algebraic/type");
+const { is, data, string, number } = require("@algebraic/type");
 const { None } = require("@algebraic/type/optional");
 const { List, OrderedMap, OrderedSet } = require("@algebraic/collections");
 const toPooled = require("@cause/task/transform/to-pooled");
@@ -46,45 +46,48 @@ const toShasumMap = (function ()
     }, { OrderedMap, string, shasum, ShasumRegExp });
 })();
 
-const toLocal = toPooled(["glob", "toShasumMap"], function (workspace, entriesRelativeToWorkspace)
+const toLocal = toPooled(["glob", "toShasumMap"], function (workspace, workspacePatterns)
 {
     // We are calculating the root from the source PATTERNS instead of the
     // resultant files. This is only OK if we don't allow .. to follow **.
-    const entriesAbsolute = entriesRelativeToWorkspace
-        .map(([index, { source, ...rest }]) =>
-            [index, include({ ...rest, source: resolve(workspace, source) })]);
-    const root = entriesAbsolute
-        .reduce((root, [, { source }]) =>
-            common(root, source.split(sep)),
+    const absolutePatterns = workspacePatterns
+        .map(pattern => resolve(workspace, pattern));
+    const root = absolutePatterns
+        .reduce((root, pattern) =>
+            common(root, pattern.split(sep)),
             join(workspace, "/").split(sep))
         .join(sep);
-    const entriesRelativeToRoot = entriesAbsolute
-        .map(([index, { source, ...rest }]) =>
-            [index, include({ ...rest, source: relative(workspace, source) })]);
-    const patterns = entriesRelativeToRoot.map(([, { source }]) => source);
-    const filenames = glob({ origin: root, patterns })
+    const rootPatterns = absolutePatterns
+        .map(pattern => relative(workspace, pattern));
+    const filenames = glob({ origin: root, patterns: rootPatterns })
         .map(filename => relative(root, filename));
     const fromLocal = toShasumMap({ root, filenames });
 
-    return [root, entriesRelativeToRoot, fromLocal];
+    return [root, rootPatterns, fromLocal];
 }, { common, join, sep, relative, resolve, glob, toShasumMap });
 
 
 
 module.exports = toPooled(["toLocal"], function (playbook)
 {
-    const includes = playbook.instructions.entrySeq()
-        .filter(([, instruction]) => is(include, instruction));
-    const grouped = includes.groupBy(([, instruction]) => instruction.from);
+    const { instructions } = playbook;
+    const includes = instructions.entrySeq()
+        .filter(([, instruction]) => is(include, instruction)).toList();
+    const grouped = includes
+        .groupBy(([, instruction]) => instruction.from)
+        .map(includes => includes.map(([index]) => index));
+    const indexesLocal = grouped.get(None, List(number)());
+    const [root, rootPatterns, fromLocal] = toLocal(
+        playbook.workspace,
+        indexesLocal.map(index => instructions.get(index).source));
 
-    const entriesRelativeToWorkspace = grouped.get(None, List(string)());
-    const [root, entriesRelativeToRoot, fromLocal] =
-        toLocal(playbook.workspace, entriesRelativeToWorkspace);
+    const rootInstructions = rootPatterns
+        .reduce((instructions, source, index) =>
+            instructions.update(
+                indexesLocal.get(index),
+                previous => include({ ...previous, source })),
+            playbook.instructions);
 
-    const instructions = entriesRelativeToRoot
-        .reduce((instructions, [index, instruction]) => instructions
-            .update(index, previous => include({ ...previous, source: instruction.source })),
-        playbook.instructions);
     const modified = Playbook({ ...playbook, instructions });
     const dockerfile = Buffer.from(Playbook.render(modified), "utf-8");
 
@@ -94,10 +97,10 @@ module.exports = toPooled(["toLocal"], function (playbook)
         fromLocal,
         fromImages: OrderedMap(string, OrderedSet(string))()
     });
-    const aa = console.log(root, entriesRelativeToRoot, fileSet);
+    const aa = console.log(root, rootPatterns, fileSet);
 
-    return aa;
-}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook });
+    return fileSet;
+}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook, number });
 
 
 

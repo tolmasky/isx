@@ -29,12 +29,12 @@ module.exports = toPooled(["spawn", "mkdirp", "mktmp"], function persistentTar(r
     if (sync.exists(tarname))
         return tarname;
 
-    const workspace = mktmp();
+    const tmpDirectory = mktmp();
     const filenames = fileSet.data.entrySeq()
-        .map(([tarPath, buffer]) =>
-            [tarPath, join(workspace, tarPath), buffer])
-        .map(([tarPath, workspacePath, buffer]) =>
-            (sync.write(workspacePath, buffer), workspacePath))
+        .map(([inTarPath, buffer]) =>
+            [inTarPath, join(tmpDirectory, inTarPath), buffer])
+        .map(([inTarPath, tmpPath, buffer]) =>
+            (sync.write(tmpPath, buffer), tmpPath))
         .concat(fileSet.fromLocal.keySeq())
         .concat(fileSet.fromImages.entrySeq()
             .flatMap(([origin, filename]) =>
@@ -43,7 +43,7 @@ module.exports = toPooled(["spawn", "mkdirp", "mktmp"], function persistentTar(r
     const gtar = spawn("gtar", [
         "-cvf", tarname,
         "--absolute-names",
-        `--transform=s,${join(workspace, "/")},/,`,
+        `--transform=s,${join(tmpDirectory, "/")},/,`,
         `--transform=s,${join(root, "/")},/root/,`,
         ...fileSet.fromImages.keySeq().map(origin =>
             `--transform=s,${join(persistent, origin, "/")},/${origin}/,`),

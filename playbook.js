@@ -1,32 +1,38 @@
-const { is, data, string, union, Maybe } = require("@algebraic/type");
-const { List, Map, Set } = require("@algebraic/collections");
-const { base, getArguments } = require("generic-jsx");
-const { Optional, None } = require("@algebraic/type/optional");
-const Instruction = require("./instruction");
-const getChecksum = require("./get-checksum");
+const { resolve } = require("path");
 
-const image = data `image` (
-    checksum        => string,
+const { is, data, string } = require("@algebraic/type");
+const { List } = require("@algebraic/collections");
+const { None } = require("@algebraic/type/optional");
+
+const { base, getArguments } = require("generic-jsx");
+
+const { Instruction, include } = require("./instruction");
+
+const { hasOwnProperty } = Object;
+const extract = (key, properties, fallback) =>
+    hasOwnProperty.call(properties, key) ? properties[key] : fallback;
+
+
+const Playbook = data `Playbook` (
     from            => string,
     tags            => [List(string), List(string)()],
-    workspace       => Optional(string),
     instructions    => List(Instruction) );
 
 
-image.render = image =>
+Playbook.render = playbook =>
 [
-    `from ${image.from}`,
-    ...image.instructions.map(Instruction.render)
+    `from ${playbook.from}`,
+    ...playbook.instructions.map(Instruction.render)
 ].join("\n");
 
-image.compile = function compile (element)
+Playbook.compile = function compile (element)
 {
     const args = getArguments(element);
     const f = base(element);
     const fromXML = f.fromXML;
 
     if (fromXML)
-        return fromXML(element);
+        return fromXML(args);
 
     if (element === false)
         return false;
@@ -44,21 +50,29 @@ image.compile = function compile (element)
     return compile(element());
 }
 
-image.fromXML = function (element)
+Playbook.fromXML = function (properties)
 {
-    const args = getArguments(element);
-    const from = args.from;
-    const workspace = args.workspace || None;
+    const from = extract("from", properties, None);
 
-    if (!from)
-        throw Error("<image> must have a from property.");
+    if (from === None)
+        throw Error("<playbook> must have a from property.");
 
-    const tags = List(string)((args.tags || []).concat(args.tag || []));
-    const instructions = List(Instruction)(image.compile(args.children));
-    const withoutChecksum = image({ from, tags, workspace, instructions, checksum:"" });
-    const checksum = getChecksum(image, withoutChecksum);
+    const tag = extract("tag", properties, None);
+    const tags = List(string)(extract("tags", properties, List(string)()))
+        .concat(tag === None ? [] : [tag]);
 
-    return image({ ...withoutChecksum, checksum });
+    const children = extract("children", properties, []);
+    const workspace = extract("workspace", properties, None);
+
+    const instructions = List(Instruction)(Playbook.compile(children)
+        .map(instruction =>
+            !is(include, instruction) || instruction.from !== None ?
+                instruction :
+                include({ ...instruction,
+                    source: resolve(workspace, instruction.source) })));
+
+    return Playbook({ from, tags, instructions });
 }
 
-module.exports = image;
+
+module.exports = Playbook;

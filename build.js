@@ -94,8 +94,9 @@ function FIXME_registerGenericJSX()
 
     global.playbook = Playbook;
 
-    for (const type of union.components(Instruction))
-        global[getUnscopedTypename(type)] = type;
+    for (const [key, value] of Object.entries(Instruction))
+        if (value !== Instruction)
+            global[key] = value;
 
     global.node = require("./node");
 }

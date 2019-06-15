@@ -1,4 +1,4 @@
-const { data, union, string, Maybe, type } = require("@algebraic/type");
+const { data, union, string, type } = require("@algebraic/type");
 const { Optional, None } = require("@algebraic/type/optional");
 const { base, getArguments } = require("generic-jsx");
 
@@ -6,18 +6,9 @@ const getPlaybook = () => require("./playbook");
 
 
 const instruction = union `instruction` (
-    data `add` (
-        from        => [Optional(getPlaybook()), None],
-        source      => string,
-        destination => string ),
 
     data `cmd` (
         command     => string ),
-
-    data `copy` (
-        from        => [Optional(getPlaybook()), None],
-        source      => string,
-        destination => string ),
 
     data `env` (
         key         => string,
@@ -25,6 +16,12 @@ const instruction = union `instruction` (
 
     data `expose` (
         port        => number ),
+
+    data `include` (
+        from        => [Optional(getPlaybook()), None],
+        method      => instruction.include.method,
+        source      => string,
+        destination => string ),
 
     data `label` (
         name        => string ),
@@ -43,20 +40,37 @@ const instruction = union `instruction` (
         name        => string )
 );
 
+instruction.include.method = union `Instruction.include.method` (
+    data `add` (),
+    data `copy` ()
+);
+
 instruction.render = function (instruction)
 {
     return type.of(instruction).render(instruction);
 }
 
-const insert = instruction => ({ from, source, destination }) =>
+instruction.add = toInclude(instruction.include.method.add);
+instruction.copy = toInclude(instruction.include.method.copy);
+
+function toInclude(method)
+{
+    return function ({ from: uncompiled = None, source, destination })
+    {
+        const { compile } = getPlaybook();
+        const from = uncompiled !== None ? compile(uncompiled) : None;
+
+        return instruction.include({ method, from, source, destination });
+    }
+}
+
+instruction.include.render = ({ method, from, source, destination }) =>
 [
-    instruction,
+    method === instruction.include.method.add ? "ADD" : "COPY",
     source,
     destination
 ].join(" ");
 
-instruction.add.render = insert("ADD");
-instruction.copy.render = insert("COPY");
 instruction.cmd.render = ({ command }) => `CMD ${command}`;
 
 instruction.env.render = ({ key, value }) => `ENV ${key}=${JSON.stringify(value)}`;
@@ -73,29 +87,13 @@ instruction.workdir.render = ({ name }) => `WORKDIR ${name}`;
 instruction.user.render = ({ name }) => `USER ${name}`;
 instruction.volume.render = ({ name }) => `VOLUME ${name}`;
 
-instruction.add.fromXML =
-instruction.copy.fromXML = function (element)
-{
-    const args = getArguments(element);
-    const f = base(element);
-    const from = args.from ? getPlaybook().compile(args.from) : None;
-    
-    return f({ ...args, from });
-}
+const fromChildren = (T, key) =>
+    ({ children, ...rest }) => T({ ...rest, [key]: children.join("") });
 
-instruction.run.fromXML = fromChildren("command");
-instruction.workdir.fromXML = fromChildren("path");
-instruction.user.fromXML = fromChildren("name");
-
-function fromChildren(key)
-{
-    return function (element)
-    {
-        const { children, ...args } = getArguments(element);
-        const value = children.join("");
-
-        return base(element)({ ...args, [key]: value });
-    }
-}
+instruction.run.fromXML = fromChildren(instruction.run, "command");
+instruction.workdir.fromXML = fromChildren(instruction.workdir, "path");
+instruction.user.fromXML = fromChildren(instruction.user, "name");
 
 module.exports = instruction;
+module.exports.Instruction = module.exports;
+

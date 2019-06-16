@@ -27,7 +27,7 @@ module.exports = toPooled(function glob({ origin, patterns })
             .replace(/\*/g, "[^\/]*") + `\\(/.*\\)${optional}`;
 
     const command = local ? find : findInDocker;
-    const context = (local ? origin : origin.id);
+    const context = (local ? origin : `isx:${origin.ptag}`);
     const contextNoSlash = context.replace(/\/$/, "");
     const { stdout } = δ(command(
         contextNoSlash,

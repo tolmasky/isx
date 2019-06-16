@@ -130,13 +130,10 @@ const toImage = toPooled(function (persistent, playbook, patterns)
         return JSON.parse(sync.read(globname, "utf-8"));
 
     const image = δ(toDockerImage(persistent, buildContext));
+    const filenames = δ(glob({ origin: image, patterns }));
+    const written = δ(write(globname, JSON.stringify(filenames)));
 
-    const pp = console.log("THE IMAGE: " + image);
-/*    const filenames = glob.image(image, patterns);
-    const written = write(globname, JSON.stringify(filenames));
-    const pp = console.log("THE FILE NAMES: " + filenames);
-*/
-    return pp;
+    return (written, filenames);
 }, { FileSet, List, string, getChecksum, write, sync, mkdirp, join, glob, toDockerImage });
 console.log(toImage + "");
 

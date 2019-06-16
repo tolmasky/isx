@@ -11,7 +11,6 @@ const sync = (fs =>
 const find = (...args) => spawn("find", args);
 const findInDocker = (tag, ...args) =>
     spawn("docker", ["run", "--rm", tag, "find", "/", ...args]);
-const log = (...args) => (console.log("[[[ " + args.length + " " + args[0]), args[0]);
 
 module.exports = toPooled(function glob({ origin, patterns })
 {
@@ -41,7 +40,4 @@ module.exports = toPooled(function glob({ origin, patterns })
     const u = console.log("AND GOT " + filenames);
 
     return List(string)(filenames);
-}, { find, findInDocker, is, string, join, List, log });
-
-
-// console.log(module.exports+"");
+}, { find, findInDocker, is, string, join, List });

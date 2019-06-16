@@ -126,15 +126,15 @@ const toImage = toPooled(function (persistent, playbook, patterns)
     const dirname = δ(mkdirp(join(persistent, "extract", ptag)));
     const globname = join(dirname, `${checksum}.json`);
 
-    if (sync.exists(globname))
-        return JSON.parse(sync.read(globname, "utf-8"));
+//    if (sync.exists(globname))
+//        return [Image({ ptag }), JSON.parse(sync.read(globname, "utf-8"))];
 
     const image = δ(toDockerImage(persistent, buildContext));
     const filenames = δ(glob({ origin: image, patterns }));
     const written = δ(write(globname, JSON.stringify(filenames)));
-
-    return (written, filenames);
-}, { FileSet, List, string, getChecksum, write, sync, mkdirp, join, glob, toDockerImage });
+const rr = (written, console.log("PAIR: " + [image, filenames]));
+    return (written, [image, filenames]);
+}, { FileSet, List, string, getChecksum, write, sync, mkdirp, join, glob, toDockerImage, Image });
 console.log(toImage + "");
 
 /*
@@ -192,12 +192,15 @@ const fromPlaybook = toPooled(function (playbook)
         playbook.workspace,
         indexesLocal.map(index => instructions.get(index).source)));
     const aa2 = console.log("HOW FAR?... " + root + (global.not_again = true));
-    const fromImages = δ(map(
-        ([playbook, indexes]) => toImage(
-            "/Users/tolmasky/Development/cache",
-            playbook,
-            indexes.map(index => instructions.get(index).source)),
-        [...grouped.remove(None).entrySeq().toList()]));
+    const fromImages = OrderedMap(string, OrderedSet(string))(δ(grouped
+        .remove(None)
+        .entrySeq()
+        .map(([playbook, indexes]) =>
+            toImage(
+                "/Users/tolmasky/Development/cache",
+                playbook,
+                indexes.map(index => instructions.get(index).source)))));
+
     const annow = console.log("OK CALLED TO_IMAGE: " + fromImages);
     //const fromImages = map(grtoImage
 
@@ -214,11 +217,13 @@ const fromPlaybook = toPooled(function (playbook)
     {
         data: OrderedMap(string, Buffer)([["Dockerfile", dockerfile]]),
         fromLocal,
-        fromImages: OrderedMap(string, OrderedSet(string))()
+        fromImages
     });
 
     return BuildContext({ root, fileSet });
 }, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook, number, toImage, map, BuildContext });
+
+console.log(fromPlaybook+"");
 
 FileSet.fromPlaybook = fromPlaybook;
 

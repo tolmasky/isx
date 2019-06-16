@@ -83,13 +83,15 @@ const toLocal = toPooled(function (workspace, workspacePatterns)
         .join(sep);
     const x = console.log("SO FAR: " + root);
     const rootPatterns = absolutePatterns
-        .map(pattern => relative(workspace, pattern));
+        .map(pattern => relative(root, pattern));
     const filenames = δ(glob({ origin: root, patterns: rootPatterns }))
         .map(filename => relative(root, filename));
+
     const fromLocal = δ(toShasumMap({ root, filenames }));
+    const tarPatterns = rootPatterns.map(pattern => join("root", pattern));
     const resulting = console.log("MY FROM LOCAL IS EASY: " + fromLocal);
 
-    return [root, rootPatterns, fromLocal];
+    return [root, tarPatterns, fromLocal];
 }, { common, join, sep, relative, resolve, glob, toShasumMap, List, string, OrderedMap, None });
 
 const toDockerImage = toPooled(function (persistent, buildContext)
@@ -206,7 +208,6 @@ const fromPlaybook = toPooled(function (playbook)
     const [root, rootPatterns, fromLocal] = δ(toLocal(
         playbook.workspace,
         indexesLocal.map(index => instructions.get(index).source)));
-//    const aa2 = console.log("HOW FAR?... " + root + (global.not_again = true));
 
     const includesFromVolumes = grouped.remove(None).entrySeq();
     const fromImages = OrderedMap(Image, OrderedSet(string))(
@@ -215,9 +216,6 @@ const fromPlaybook = toPooled(function (playbook)
                 "/Users/tolmasky/Development/cache",
                 playbook,
                 indexes.map(index => instructions.get(index).source)))));
-
-    const annow = console.log("OK CALLED TO_IMAGE: " + fromImages);
-    //const fromImages = map(grtoImage
 
     const rootInstructions = includesFromVolumes
         .zipWith(([, indexes], [image]) =>
@@ -249,42 +247,3 @@ FileSet.fromPlaybook = fromPlaybook;
 
 module.exports = fromPlaybook;
 module.exports.toDockerImage = toDockerImage;
-
-
-/*
-        .reduce((root, [, include]) =>
-            common(root, join(workspace, include.source).split(sep)),
-            workspace.split(sep)).join(sep);
-
-
-    const root = entriesLocal
-        .reduce((root, [, include]) =>
-            common(root, join(workspace, include.source).split(sep)),
-            workspace.split(sep)).join(sep);
-    const entriesRelativeToRoot = entriesLocal
-        .map([]
-    
-
-    console.log("ROOT: " + root);
-    /*
-    
-        if (is(subpath))
-            return great.
-        
-        if-not
-            go back further.
-        join(workspace, filename))
-
-    console.log(local, includes.toList());*/
-
-/*
-
-BuildSet
-{
-root
-fileSet
-tags
-instructions
-}
-
-*/

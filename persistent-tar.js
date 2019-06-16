@@ -31,7 +31,8 @@ module.exports = toPooled(function persistentTar(persistent, root, fileSet)
             [inTarPath, join(tmpDirectory, inTarPath), buffer])
         .map(([inTarPath, tmpPath, buffer]) =>
             (sync.write(tmpPath, buffer), tmpPath))
-        .concat(fileSet.fromLocal.keySeq())
+        .concat(fileSet.fromLocal.keySeq()
+            .map(filename => join(root, filename)))
         .concat(fileSet.fromImages.entrySeq()
             .flatMap(([image, filenames]) =>
                 filenames.map(filename =>

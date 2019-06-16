@@ -1,5 +1,5 @@
 const { is, string } = require("@algebraic/type");
-const { List } = require("@algebraic/collections");
+const { OrderedSet } = require("@algebraic/collections");
 const spawn = require("@cause/task/spawn");
 const { join } = require("@cause/task/fs");
 const toPooled = require("@cause/task/transform/to-pooled");
@@ -39,5 +39,5 @@ module.exports = toPooled(function glob({ origin, patterns })
         .map(([_, filename]) => filename);
     const u = console.log("AND GOT " + filenames);
 
-    return List(string)(filenames);
-}, { find, findInDocker, is, string, join, List });
+    return OrderedSet(string)(filenames);
+}, { find, findInDocker, is, string, join, OrderedSet });

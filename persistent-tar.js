@@ -1,4 +1,4 @@
-const { data, string } = require("@algebraic/type");
+const { data, string, of } = require("@algebraic/type");
 const { None } = require("@algebraic/type/optional");
 const { OrderedMap, OrderedSet } = require("@algebraic/collections");
 
@@ -18,14 +18,14 @@ const { join, mkdirp } = require("@cause/task/fs");
 
 module.exports = toPooled(function persistentTar(persistent, root, fileSet)
 {const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet);
-    const checksum = getChecksum(FileSet, fileSet);
+    const checksum = getChecksum(of(fileSet), fileSet);
     const what = console.log("huh?... " + checksum);
     const tarname = join(δ(mkdirp(persistent)), `${checksum}.tar`);
 
     if (sync.exists(tarname))
         return tarname;
 
-    const tmpDirectory = δ(mktmp());
+    const tmpDirectory = δ(mktmp());const u = console.log("SO FAR SO GOOD... " + tmpDirectory);
     const filenames = fileSet.data.entrySeq()
         .map(([inTarPath, buffer]) =>
             [inTarPath, join(tmpDirectory, inTarPath), buffer])
@@ -33,8 +33,9 @@ module.exports = toPooled(function persistentTar(persistent, root, fileSet)
             (sync.write(tmpPath, buffer), tmpPath))
         .concat(fileSet.fromLocal.keySeq())
         .concat(fileSet.fromImages.entrySeq()
-            .flatMap(([image, filename]) =>
-                join(persistent, image.ptag, filename)))
+            .flatMap(([image, filenames]) =>
+                filenames.map(filename =>
+                    join(persistent, "volumes", image.ptag, "root", filename))))
         .toList();
 
     const gtar = δ(spawn("gtar", [
@@ -44,11 +45,11 @@ module.exports = toPooled(function persistentTar(persistent, root, fileSet)
         ...(root === None ?
             [] :
             [`--transform=s,${join(root, "/")},/root/,`]),
-        ...fileSet.fromImages.keySeq().map(image =>
-            `--transform=s,${join(persistent, image.ptag, "/")},/${image.ptag}/,`),
+        ...fileSet.fromImages.keySeq().map(({ ptag }) =>
+            `--transform=s,${join(persistent, `volumes/${ptag}/root/`)},/volumes/${ptag}/,`),
         ...filenames]));
 
     return (gtar, tarname);
-}, { getChecksum, join, spawn, sync, mkdirp, mktmp, None });
+}, { getChecksum, join, spawn, sync, mkdirp, mktmp, None, of });
 
 

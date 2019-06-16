@@ -20,43 +20,13 @@ const BUILD = require("./_file-set");
 
 const build = toPooled(function build(playbook)
 {
-    const __announce__ = console.log(`BUILD ${playbook.tags}`);
-    /*const { workspace } = playbook;
-    const [fileSets, instructions] =
-        map(FileSet.extract(workspace), playbook.instructions)
-        .reduce(([fileSets, instructions], [fileSet, instruction]) =>
-        [
-            fileSet === None ? fileSets : fileSets.push(fileSet),
-            instructions.push(instruction)
-        ], [List(FileSet)(), List(Instruction)()]);*/
-
-
-//    const x = δ(BUILD)(playbook);
-    const x = δ(BUILD(playbook));
-    const ll = console.log("THEN ALL DONE?... " +x);
-
-/*
-    const fromExtractions = Playbook({ ...playbook, instructions });
-    const dockerfile = Buffer.from(Playbook.render(fromExtractions), "utf-8");
-    const fileSet = persistentTar.FileSet({
-        data: OrderedMap(string, Buffer)([["Dockerfile", dockerfile]]),
-        fromLocal: OrderedMap(string, string)(),
-        fromImages: OrderedMap(string, OrderedSet(string))()
-    });
-    const aa = console.log(fileSet);
-    const tarPath = persistentTar(
-        "/Users/tolmasky/Development/tonic",
+    const buildContext = δ(BUILD(playbook));
+    const image = δ(BUILD.toDockerImage(
         "/Users/tolmasky/Development/cache",
-        fileSet
-    );
-    const tarStream = fs.createReadStream(tarPath);
-    const dockerOutput = spawn("docker",
-        ["build", "-"],
-        { stdio: [tarStream, "pipe", "pipe"] });
-    const id = dockerOutput.match(/([a-z0-9]{12})\n$/)[1];
+        buildContext));
+    const ll = console.log("THEN ALL DONE?... " + image);
 
-    return Image({ id });*/
-    return x;
+    return ll;
 }, { CACHE, getChecksum, FileSet, List, string, spawn, console, write, is, Playbook, Instruction, fs, None, map, of, mkdirp, Image, tar, join, Buffer, persistentTar, OrderedMap, OrderedSet, BUILD });
 console.log(build+"");
 module.exports = async function build_({ filename, push, sequential }, properties)

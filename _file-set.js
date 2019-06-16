@@ -29,7 +29,7 @@ const BuildContext = data `BuildContext` (
 const FileSet = data `FileSet` (
     data        => OrderedMap(string, Buffer),
     fromLocal   => OrderedMap(string, string),
-    fromImages  => OrderedMap(string, OrderedSet(string)) );
+    fromImages  => OrderedMap(Image, OrderedSet(string)) );
 
 const Image = data `Image` (
     ptag        => string );
@@ -106,11 +106,9 @@ const toDockerImage = toPooled(function (persistent, buildContext)
     const tarPath = δ(persistentTar(persistent, buildContext.root, fileSet));
     const tt = console.log("PATH: " + tarPath);
     const tarStream = fs.createReadStream(tarPath);
-    const o = console.log("WHAT: " +
-        ["build", "-", "-t", `isx:${ptag}`].join(" "))
-    const dockerOutput = δ(spawn("docker"),
+    const dockerOutput = δ(spawn("docker",
         ["build", "-", "-t", `isx:${ptag}`],
-        { stdio: [tarStream, "pipe", "pipe"] });
+        { stdio: [tarStream, "pipe", "pipe"] }));
 
     return (dockerOutput, Image({ ptag }));
 }, { spawn, FileSet, fs, persistentTar, Image });
@@ -126,8 +124,9 @@ const toImage = toPooled(function (persistent, playbook, patterns)
     const globname = join(globs, `${checksum}.json`);
 
     if (sync.exists(globname))
-        return [Image({ ptag }), JSON.parse(sync.read(globname, "utf-8"))];
-
+        return [Image({ ptag }),
+            OrderedSet(string)(JSON.parse(sync.read(globname, "utf-8")))];
+const aa2 = console.log("BC: " + buildContext);
     const image = δ(toDockerImage(persistent, buildContext));
     const filenames = δ(glob({ origin: image, patterns }));
     const root = δ(mkdirp(join(volume, "root")));
@@ -158,7 +157,7 @@ const aa = console.log("MISSING: " + missing);
     const written = untarred && δ(write(globname, JSON.stringify(filenames)));
 
     return (written, [image, filenames]);
-}, { FileSet, List, string, getChecksum, write, sync, mkdirp, join, glob, toDockerImage, Image, spawn, toReadableStream });
+}, { FileSet, List, string, getChecksum, write, sync, mkdirp, join, glob, toDockerImage, Image, spawn, toReadableStream, OrderedSet });
 
 function toReadableStream(string)
 {
@@ -207,11 +206,11 @@ const fromPlaybook = toPooled(function (playbook)
     const [root, rootPatterns, fromLocal] = δ(toLocal(
         playbook.workspace,
         indexesLocal.map(index => instructions.get(index).source)));
-    const aa2 = console.log("HOW FAR?... " + root + (global.not_again = true));
-    const fromImages = OrderedMap(string, OrderedSet(string))(δ(grouped
-        .remove(None)
-        .entrySeq()
-        .map(([playbook, indexes]) =>
+//    const aa2 = console.log("HOW FAR?... " + root + (global.not_again = true));
+
+    const includesFromVolumes = grouped.remove(None).entrySeq();
+    const fromImages = OrderedMap(Image, OrderedSet(string))(
+        δ(includesFromVolumes.map(([playbook, indexes]) =>
             toImage(
                 "/Users/tolmasky/Development/cache",
                 playbook,
@@ -220,14 +219,21 @@ const fromPlaybook = toPooled(function (playbook)
     const annow = console.log("OK CALLED TO_IMAGE: " + fromImages);
     //const fromImages = map(grtoImage
 
-    const rootInstructions = rootPatterns
-        .reduce((instructions, source, index) =>
-            instructions.update(
-                indexesLocal.get(index),
-                previous => include({ ...previous, source })),
-            playbook.instructions);
+    const rootInstructions = includesFromVolumes
+        .zipWith(([, indexes], [image]) =>
+            [`/volumes/${image.ptag}`, indexes], fromImages.entrySeq())
+        .reduce((instructions, [dirname, indexes]) =>
+            indexes.reduce((instructions, index) =>
+                instructions.update(index, ({ source, ...rest }) =>
+                     include({ ...rest, source: join(dirname, source) })),
+                instructions),
+            rootPatterns.reduce((instructions, source, index) =>
+                instructions.update(
+                    indexesLocal.get(index),
+                    previous => include({ ...previous, source })),
+                playbook.instructions));
 
-    const modified = Playbook({ ...playbook, instructions });
+    const modified = Playbook({ ...playbook, instructions: rootInstructions });
     const dockerfile = Buffer.from(Playbook.render(modified), "utf-8");
     const fileSet = FileSet(
     {
@@ -237,11 +243,12 @@ const fromPlaybook = toPooled(function (playbook)
     });
 
     return BuildContext({ root, fileSet });
-}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook, number, toImage, map, BuildContext });
+}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook, number, toImage, map, BuildContext, Image, join });
 
 FileSet.fromPlaybook = fromPlaybook;
 
 module.exports = fromPlaybook;
+module.exports.toDockerImage = toDockerImage;
 
 
 /*

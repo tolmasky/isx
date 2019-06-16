@@ -55,7 +55,7 @@ function getMapChecksum(type, value)
 {
     const [keyType, valueType] = parameterized.parameters(type);
     const items = value
-        .map((key, value) =>
+        .map((value, key) =>
             [getChecksum(keyType, key), getChecksum(valueType, value)])
         .toObject();
 
@@ -66,7 +66,7 @@ function getOrderedMapChecksum(type, value)
 {
     const [keyType, valueType] = parameterized.parameters(type);
     const items = value
-        .map((key, value) =>
+        .map((value, key) =>
             [getChecksum(keyType, key), getChecksum(valueType, value)])
         .toObject();
 

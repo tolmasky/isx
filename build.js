@@ -5,7 +5,7 @@ const Instruction = require("./instruction");
 const { None } = require("@algebraic/type/optional");
 const toPooled = require("@cause/task/transform/to-pooled");
 const toPromise = require("@cause/cause/to-promise");
-const { stdout: spawn } = require("@cause/task/spawn");
+const spawn = require("@cause/task/spawn");
 const fs = require("fs");
 const { join, mkdirp, write } = require("@cause/task/fs");
 const map = require("@cause/task/map");
@@ -31,7 +31,8 @@ const build = toPooled(function build(playbook)
         ], [List(FileSet)(), List(Instruction)()]);*/
 
 
-    const x = δBUILD(playbook);
+//    const x = δ(BUILD)(playbook);
+    const x = δ(BUILD(playbook));
     const ll = console.log("THEN ALL DONE?... " +x);
 
 /*

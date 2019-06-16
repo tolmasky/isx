@@ -1,6 +1,6 @@
 const { is, string } = require("@algebraic/type");
 const { List } = require("@algebraic/collections");
-const { stdout: spawn } = require("@cause/task/spawn");
+const spawn = require("@cause/task/spawn");
 const { join } = require("@cause/task/fs");
 const toPooled = require("@cause/task/transform/to-pooled");
 
@@ -11,7 +11,7 @@ const sync = (fs =>
 const find = (...args) => spawn("find", args);
 const findInDocker = (tag, ...args) =>
     spawn("docker", ["run", "--rm", tag, "find", "/", ...args]);
-
+const log = (...args) => (console.log("[[[ " + args.length + " " + args[0]), args[0]);
 
 module.exports = toPooled(function glob({ origin, patterns })
 {
@@ -29,22 +29,19 @@ module.exports = toPooled(function glob({ origin, patterns })
     const command = local ? find : findInDocker;
     const context = (local ? origin : origin.id);
     const contextNoSlash = context.replace(/\/$/, "");
-    const mm = console.log("AND GOT TO ABOUT... " + contextNoSlash,
-        "-type", "f",
-        ...patterns
-            .map(globToRegExp)
-            .flatMap((pattern, index) =>
-                [...(index > 0 ? ["-o"] : []), "-regex", pattern]));
-    const output = δcommand(
+    const { stdout } = δ(command(
         contextNoSlash,
         "-type", "f",
         ...patterns
             .map(globToRegExp)
             .flatMap((pattern, index) =>
-                [...(index > 0 ? ["-o"] : []), "-regex", pattern]));
-    const filenames = [...output.matchAll(/([^\n]*)\n/g)]
+                [...(index > 0 ? ["-o"] : []), "-regex", pattern])));
+    const filenames = [...stdout.matchAll(/([^\n]*)\n/g)]
         .map(([_, filename]) => filename);
     const u = console.log("AND GOT " + filenames);
 
     return List(string)(filenames);
-}, { find, findInDocker, is, string, join, List });
+}, { find, findInDocker, is, string, join, List, log });
+
+
+// console.log(module.exports+"");

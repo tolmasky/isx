@@ -4,7 +4,7 @@ const { OrderedMap, OrderedSet } = require("@algebraic/collections");
 
 const toPooled = require("@cause/task/transform/to-pooled");
 const toPromise = require("@cause/cause/to-promise");
-const { stdout: spawn } = require("@cause/task/spawn");
+const spawn = require("@cause/task/spawn");
 
 const uuid = require("uuid");
 const getChecksum = require("./get-checksum");
@@ -26,12 +26,12 @@ module.exports = toPooled(function persistentTar(persistent, root, fileSet)
 {const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet);
     const checksum = getChecksum(FileSet, fileSet);
     const what = console.log("huh?... " + checksum);
-    const tarname = join(δmkdirp(persistent), `${checksum}.tar`);
+    const tarname = join(δ(mkdirp(persistent)), `${checksum}.tar`);
 const o = console.log("DONT UNDERSTAND: " + tarname);
     if (sync.exists(tarname))
         return tarname;
 const l = console.log("WHAT... " + tarname);
-    const tmpDirectory = δmktmp();const a = console.log(fileSet.data.entrySeq()
+    const tmpDirectory = δ(mktmp());const a = console.log(fileSet.data.entrySeq()
         .map(([inTarPath, buffer]) =>
             [inTarPath, join(tmpDirectory, inTarPath), buffer]));
     const filenames = fileSet.data.entrySeq()
@@ -44,7 +44,7 @@ const l = console.log("WHAT... " + tarname);
             .flatMap(([image, filename]) =>
                 join(persistent, image.ptag, filename)))
         .toList();
-    const gtar = δspawn("gtar", [
+    const gtar = δ(spawn("gtar", [
         "-cvf", tarname,
         "--absolute-names",
         `--transform=s,${join(tmpDirectory, "/")},/,`,
@@ -53,7 +53,7 @@ const l = console.log("WHAT... " + tarname);
             [`--transform=s,${join(root, "/")},/root/,`]),
         ...fileSet.fromImages.keySeq().map(image =>
             `--transform=s,${join(persistent, image.ptag, "/")},/${image.ptag}/,`),
-        ...filenames]);
+        ...filenames]));
 
     return (gtar, tarname);
 }, { FileSet, getChecksum, join, spawn, sync, mkdirp, mktmp, None });

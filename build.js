@@ -18,7 +18,7 @@ const persistentTar = require("./persistent-tar");
 const BUILD = require("./_file-set");
 
 
-const build = toPooled(["map", "spawn", "write", "mkdirp", "persistentTar", "BUILD"], function build(playbook)
+const build = toPooled(function build(playbook)
 {
     const __announce__ = console.log(`BUILD ${playbook.tags}`);
     /*const { workspace } = playbook;
@@ -31,7 +31,7 @@ const build = toPooled(["map", "spawn", "write", "mkdirp", "persistentTar", "BUI
         ], [List(FileSet)(), List(Instruction)()]);*/
 
 
-    const x = BUILD(playbook);
+    const x = δBUILD(playbook);
     const ll = console.log("THEN ALL DONE?... " +x);
 
 /*

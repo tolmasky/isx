@@ -55,12 +55,12 @@ const toShasumMap = (function ()
         ["shasum", ["-a", "256"]] : ["sha256sum"]));
     const ShasumRegExp = /([a-z0-9]{64})\s{2}([^\n]+)\n/g;
 
-    return toPooled(["shasum"], function shasums({ root, filenames })
+    return toPooled(function shasums({ root, filenames })
     {
         if (filenames.size === 0)
             return OrderedMap(string, string)();
 
-        const stdout = shasum(filenames);
+        const stdout = δshasum(filenames);
         const [...matches] = stdout.matchAll(ShasumRegExp);
         const entries = matches
             .map(([, checksum, filename]) => [filename, checksum]);
@@ -69,7 +69,7 @@ const toShasumMap = (function ()
     }, { OrderedMap, string, shasum, ShasumRegExp });
 })();
 
-const toLocal = toPooled(["glob", "toShasumMap"], function (workspace, workspacePatterns)
+const toLocal = toPooled(function (workspace, workspacePatterns)
 {
     if (workspacePatterns.size <= 0)
         return [None, List(string)(), OrderedMap(string, string)()];
@@ -86,50 +86,50 @@ const toLocal = toPooled(["glob", "toShasumMap"], function (workspace, workspace
     const x = console.log("SO FAR: " + root);
     const rootPatterns = absolutePatterns
         .map(pattern => relative(workspace, pattern));
-    const filenames = glob({ origin: root, patterns: rootPatterns })
+    const filenames = δglob({ origin: root, patterns: rootPatterns })
         .map(filename => relative(root, filename));
-    const fromLocal = toShasumMap({ root, filenames });
+    const fromLocal = δtoShasumMap({ root, filenames });
     const resulting = console.log("MY FROM LOCAL IS EASY: " + fromLocal);
 
     return [root, rootPatterns, fromLocal];
 }, { common, join, sep, relative, resolve, glob, toShasumMap, List, string, OrderedMap, None });
 
-const toDockerImage = toPooled(["spawn", "persistentTar"], function (persistent, buildContext)
+const toDockerImage = toPooled(function (persistent, buildContext)
 {const aa = console.log("aBOTU TO BUIDL " + buildContext);
     const { fileSet } = buildContext;
     const ptag = FileSet.toPersistentTag(fileSet);
-    const exists = spawn("docker",
+    const exists = δspawn("docker",
         ["image", "inspect", `isx:${ptag}`],
         { rejectOnError: false }).exitCode === 0;
 
     if (exists)
         return Image({ ptag });
 
-    const tarPath = persistentTar(persistent, buildContext.root, fileSet);
+    const tarPath = δpersistentTar(persistent, buildContext.root, fileSet);
     const tt = console.log("PATH: " + tarPath);
     const tarStream = fs.createReadStream(tarPath);
     const o = console.log("WHAT: " +
         ["build", "-", "-t", `isx:${ptag}`].join(" "))
-    const dockerOutput = spawn("docker",
+    const dockerOutput = δspawn("docker",
         ["build", "-", "-t", `isx:${ptag}`],
         { stdio: [tarStream, "pipe", "pipe"] });
 
     return (dockerOutput, Image({ ptag }));
 }, { spawn, FileSet, fs, persistentTar, Image });
 
-const toImage = toPooled(["fromPlaybook", "mkdirp", "gimage", "toDockerImage"], function (persistent, playbook, patterns)
+const toImage = toPooled(function (persistent, playbook, patterns)
 {
     const fromPlaybook = FileSet.fromPlaybook;
-    const buildContext = fromPlaybook(playbook);
+    const buildContext = δfromPlaybook(playbook);
     const ptag = FileSet.toPersistentTag(buildContext.fileSet);
     const checksum = getChecksum(List(string), patterns);
-    const dirname = mkdirp(join(persistent, "extract", ptag));
+    const dirname = δmkdirp(join(persistent, "extract", ptag));
     const globname = join(dirname, `${checksum}.json`);
 
     if (sync.exists(globname))
         return JSON.parse(sync.read(globname, "utf-8"));
 
-    const image = toDockerImage(persistent, buildContext);
+    const image = δtoDockerImage(persistent, buildContext);
 
     const pp = console.log("THE IMAGE: " + image);
 /*    const filenames = glob.image(image, patterns);
@@ -181,7 +181,7 @@ const x = console.log("DOESNT EXIST!");
     return [image.id, image];*/
 
 
-const fromPlaybook = toPooled(["toLocal", "mapR"], function (playbook)
+const fromPlaybook = toPooled(function (playbook)
 {
     const rr = console.log("RUNNING fromPlaybook: " + playbook);
     const { instructions } = playbook;
@@ -191,11 +191,11 @@ const fromPlaybook = toPooled(["toLocal", "mapR"], function (playbook)
         .groupBy(([, instruction]) => instruction.from)
         .map(includes => includes.map(([index]) => index));
     const indexesLocal = grouped.get(None, List(number)());
-    const [root, rootPatterns, fromLocal] = toLocal(
+    const [root, rootPatterns, fromLocal] = δtoLocal(
         playbook.workspace,
         indexesLocal.map(index => instructions.get(index).source));
     const aa2 = console.log("HOW FAR?... " + root + (global.not_again = true));
-    const fromImages = mapR(
+    const fromImages = δmap(
         ([playbook, indexes]) => toImage(
             "/Users/tolmasky/Development/cache",
             playbook,
@@ -221,7 +221,7 @@ const fromPlaybook = toPooled(["toLocal", "mapR"], function (playbook)
     });
 
     return BuildContext({ root, fileSet });
-}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook, number, toImage, mapR: map, BuildContext });
+}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook, number, toImage, map, BuildContext });
 
 FileSet.fromPlaybook = fromPlaybook;
 

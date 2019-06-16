@@ -22,16 +22,16 @@ const FileSet = data `FileSet` (
     fromImages  => OrderedMap(string, OrderedSet(string)) );
 
 
-module.exports = toPooled(["spawn", "mkdirp", "mktmp"], function persistentTar(persistent, root, fileSet)
+module.exports = toPooled(function persistentTar(persistent, root, fileSet)
 {const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet);
     const checksum = getChecksum(FileSet, fileSet);
     const what = console.log("huh?... " + checksum);
-    const tarname = join(mkdirp(persistent), `${checksum}.tar`);
+    const tarname = join(δmkdirp(persistent), `${checksum}.tar`);
 const o = console.log("DONT UNDERSTAND: " + tarname);
     if (sync.exists(tarname))
         return tarname;
 const l = console.log("WHAT... " + tarname);
-    const tmpDirectory = mktmp();const a = console.log(fileSet.data.entrySeq()
+    const tmpDirectory = δmktmp();const a = console.log(fileSet.data.entrySeq()
         .map(([inTarPath, buffer]) =>
             [inTarPath, join(tmpDirectory, inTarPath), buffer]));
     const filenames = fileSet.data.entrySeq()
@@ -44,7 +44,7 @@ const l = console.log("WHAT... " + tarname);
             .flatMap(([image, filename]) =>
                 join(persistent, image.ptag, filename)))
         .toList();
-    const gtar = spawn("gtar", [
+    const gtar = δspawn("gtar", [
         "-cvf", tarname,
         "--absolute-names",
         `--transform=s,${join(tmpDirectory, "/")},/,`,

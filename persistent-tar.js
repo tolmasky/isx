@@ -1,4 +1,5 @@
 const { data, string } = require("@algebraic/type");
+const { None } = require("@algebraic/type/optional");
 const { OrderedMap, OrderedSet } = require("@algebraic/collections");
 
 const toPooled = require("@cause/task/transform/to-pooled");
@@ -21,15 +22,18 @@ const FileSet = data `FileSet` (
     fromImages  => OrderedMap(string, OrderedSet(string)) );
 
 
-module.exports = toPooled(["spawn", "mkdirp", "mktmp"], function persistentTar(root, persistent, fileSet)
-{
+module.exports = toPooled(["spawn", "mkdirp", "mktmp"], function persistentTar(persistent, root, fileSet)
+{const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet);
     const checksum = getChecksum(FileSet, fileSet);
+    const what = console.log("huh?... " + checksum);
     const tarname = join(mkdirp(persistent), `${checksum}.tar`);
-
+const o = console.log("DONT UNDERSTAND: " + tarname);
     if (sync.exists(tarname))
         return tarname;
-
-    const tmpDirectory = mktmp();
+const l = console.log("WHAT... " + tarname);
+    const tmpDirectory = mktmp();const a = console.log(fileSet.data.entrySeq()
+        .map(([inTarPath, buffer]) =>
+            [inTarPath, join(tmpDirectory, inTarPath), buffer]));
     const filenames = fileSet.data.entrySeq()
         .map(([inTarPath, buffer]) =>
             [inTarPath, join(tmpDirectory, inTarPath), buffer])
@@ -37,20 +41,22 @@ module.exports = toPooled(["spawn", "mkdirp", "mktmp"], function persistentTar(r
             (sync.write(tmpPath, buffer), tmpPath))
         .concat(fileSet.fromLocal.keySeq())
         .concat(fileSet.fromImages.entrySeq()
-            .flatMap(([origin, filename]) =>
-                join(persistent, origin, filename)))
+            .flatMap(([image, filename]) =>
+                join(persistent, image.ptag, filename)))
         .toList();
     const gtar = spawn("gtar", [
         "-cvf", tarname,
         "--absolute-names",
         `--transform=s,${join(tmpDirectory, "/")},/,`,
-        `--transform=s,${join(root, "/")},/root/,`,
-        ...fileSet.fromImages.keySeq().map(origin =>
-            `--transform=s,${join(persistent, origin, "/")},/${origin}/,`),
+        ...(root === None ?
+            [] :
+            [`--transform=s,${join(root, "/")},/root/,`]),
+        ...fileSet.fromImages.keySeq().map(image =>
+            `--transform=s,${join(persistent, image.ptag, "/")},/${image.ptag}/,`),
         ...filenames]);
 
     return (gtar, tarname);
-}, { FileSet, getChecksum, join, spawn, sync, mkdirp, mktmp });
+}, { FileSet, getChecksum, join, spawn, sync, mkdirp, mktmp, None });
 
 module.exports.FileSet = FileSet;
 console.log(module.exports + "");

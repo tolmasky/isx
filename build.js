@@ -21,17 +21,20 @@ const BUILD = require("./_file-set");
 const build = toPooled(["map", "spawn", "write", "mkdirp", "persistentTar", "BUILD"], function build(playbook)
 {
     const __announce__ = console.log(`BUILD ${playbook.tags}`);
-    const { workspace } = playbook;
+    /*const { workspace } = playbook;
     const [fileSets, instructions] =
         map(FileSet.extract(workspace), playbook.instructions)
         .reduce(([fileSets, instructions], [fileSet, instruction]) =>
         [
             fileSet === None ? fileSets : fileSets.push(fileSet),
             instructions.push(instruction)
-        ], [List(FileSet)(), List(Instruction)()]);
+        ], [List(FileSet)(), List(Instruction)()]);*/
 
 
     const x = BUILD(playbook);
+    const ll = console.log("THEN ALL DONE?... " +x);
+
+/*
     const fromExtractions = Playbook({ ...playbook, instructions });
     const dockerfile = Buffer.from(Playbook.render(fromExtractions), "utf-8");
     const fileSet = persistentTar.FileSet({
@@ -51,9 +54,10 @@ const build = toPooled(["map", "spawn", "write", "mkdirp", "persistentTar", "BUI
         { stdio: [tarStream, "pipe", "pipe"] });
     const id = dockerOutput.match(/([a-z0-9]{12})\n$/)[1];
 
-    return Image({ id });
+    return Image({ id });*/
+    return x;
 }, { CACHE, getChecksum, FileSet, List, string, spawn, console, write, is, Playbook, Instruction, fs, None, map, of, mkdirp, Image, tar, join, Buffer, persistentTar, OrderedMap, OrderedSet, BUILD });
-
+console.log(build+"");
 module.exports = async function build_({ filename, push, sequential }, properties)
 {
     try {
@@ -65,9 +69,10 @@ module.exports = async function build_({ filename, push, sequential }, propertie
                 result(properties) : result));
         const playbooks = fPlaybooks.map(fPlaybook => Playbook.compile(fPlaybook));
         const playbook = playbooks.get(0);console.log(playbooks);
-        const image = await toPromise(Object, build(playbook));
+        const theBuild = build(playbook);
+        const image = await toPromise(Object, theBuild);
 
-        console.log(image);
+        console.log("---> " + image);
     }
     catch(e)
     {

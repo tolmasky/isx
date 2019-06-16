@@ -86,7 +86,9 @@ function getSha512(value)
     return crypto.createHash("sha512")
         .update(Buffer.isBuffer(value) ? value : JSON.stringify(value))
         .digest("base64")
-        .replace(/\//g, "_");
+        .replace(/\//g, "-")
+        .replace(/=/g, "_")
+        .replace(/\+/g, ".");
 }
 
 /*

@@ -34,8 +34,6 @@ const FileSet = data `FileSet` (
 const Image = data `Image` (
     ptag        => string );
 
-const t_id = require("@cause/task").fromAsync(async x => (await 0, x));
-
 
 FileSet.toPersistentTag = function (fileSet)
 {
@@ -126,8 +124,8 @@ const toImage = toPooled(function (persistent, playbook, patterns)
     const dirname = δ(mkdirp(join(persistent, "extract", ptag)));
     const globname = join(dirname, `${checksum}.json`);
 
-//    if (sync.exists(globname))
-//        return [Image({ ptag }), JSON.parse(sync.read(globname, "utf-8"))];
+    if (sync.exists(globname))
+        return [Image({ ptag }), JSON.parse(sync.read(globname, "utf-8"))];
 
     const image = δ(toDockerImage(persistent, buildContext));
     const filenames = δ(glob({ origin: image, patterns }));
@@ -135,26 +133,8 @@ const toImage = toPooled(function (persistent, playbook, patterns)
 const rr = (written, console.log("PAIR: " + [image, filenames]));
     return (written, [image, filenames]);
 }, { FileSet, List, string, getChecksum, write, sync, mkdirp, join, glob, toDockerImage, Image });
-console.log(toImage + "");
 
 /*
-    if (sync.exists(globname))
-        return JSON.parse(sync.read(globname, "utf-8"));
-const x = console.log("DOESNT EXIST!");
-    const gimage = glob.image;
-    const filenames = glob.image(fileSet, patterns);
-    const written = write(globname, JSON.stringify(filenames));
-    const p = console.log("THE FILE NAMES: " + filenames);
-
-    return (written, filenames);*/
-/*
-    const build = buildR();
-    
-    
-    const image = build(playbook);
-    const filenames = glob(fileSet);
-
-
     const destination = join(CACHE, origin.id);
     const stdio = [toReadableStream(filenames.join("\n")), "pipe", "pipe"];
     const container_name = origin.id + Date.now();
@@ -222,8 +202,6 @@ const fromPlaybook = toPooled(function (playbook)
 
     return BuildContext({ root, fileSet });
 }, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook, number, toImage, map, BuildContext });
-
-console.log(fromPlaybook+"");
 
 FileSet.fromPlaybook = fromPlaybook;
 

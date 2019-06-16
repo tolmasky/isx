@@ -121,18 +121,54 @@ const toImage = toPooled(function (persistent, playbook, patterns)
     const buildContext = δ(fromPlaybook(playbook));
     const ptag = FileSet.toPersistentTag(buildContext.fileSet);
     const checksum = getChecksum(List(string), patterns);
-    const dirname = δ(mkdirp(join(persistent, "extract", ptag)));
-    const globname = join(dirname, `${checksum}.json`);
+    const volume = δ(mkdirp(join(persistent, "volumes", ptag)));
+    const globs = δ(mkdirp(join(volume, "globs")));
+    const globname = join(globs, `${checksum}.json`);
 
     if (sync.exists(globname))
         return [Image({ ptag }), JSON.parse(sync.read(globname, "utf-8"))];
 
     const image = δ(toDockerImage(persistent, buildContext));
     const filenames = δ(glob({ origin: image, patterns }));
-    const written = δ(write(globname, JSON.stringify(filenames)));
-const rr = (written, console.log("PAIR: " + [image, filenames]));
+    const root = δ(mkdirp(join(volume, "root")));
+    const missing = filenames
+        .filter(filename => !sync.exists(join(root, filename)));
+
+    if (missing.size <= 0)
+    {
+        const written = δ(write(globname, JSON.stringify(filenames)));
+
+        return (written, [image, filenames]);
+    }
+const aa = console.log("MISSING: " + missing);
+    // FIXME: We shouldn't need the Date.now() once we have deduping.
+    const name = image.ptag + Date.now();
+    const stdio = [toReadableStream(missing.join("\n")), "pipe", "pipe"];
+    const tarname = join(δ(mkdirp(join(volume, "tars"))), `${checksum}.tar`);
+    const tarnameRemote = `/${checksum}.tar`;
+    const tarred = δ(spawn("docker",
+    [
+        "run", "-i", "--name", name, `isx:${image.ptag}`,
+        "tar", "-cvf", tarnameRemote, "--files-from", "-"
+    ], { stdio }));
+    const rr = console.log("REMOTE: " + tarnameRemote + " " + tarred);
+    const copied = tarred && δ(spawn("docker",
+        ["cp", `${name}:${tarnameRemote}`, tarname]));
+    const untarred = copied && δ(spawn("tar", ["-xf", tarname, "-C", root]));
+    const written = untarred && δ(write(globname, JSON.stringify(filenames)));
+
     return (written, [image, filenames]);
-}, { FileSet, List, string, getChecksum, write, sync, mkdirp, join, glob, toDockerImage, Image });
+}, { FileSet, List, string, getChecksum, write, sync, mkdirp, join, glob, toDockerImage, Image, spawn, toReadableStream });
+
+function toReadableStream(string)
+{
+    const stream = new (require("stream").Readable);
+
+    stream.push(string);
+    stream.push(null);
+
+    return stream;
+}
 
 /*
     const destination = join(CACHE, origin.id);

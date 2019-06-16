@@ -16,24 +16,16 @@ const sync = (fs =>
 const { join, mkdirp } = require("@cause/task/fs");
 
 
-const FileSet = data `FileSet` (
-    data        => OrderedMap(string, Buffer),
-    fromLocal   => OrderedMap(string, string),
-    fromImages  => OrderedMap(string, OrderedSet(string)) );
-
-
 module.exports = toPooled(function persistentTar(persistent, root, fileSet)
 {const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet);
     const checksum = getChecksum(FileSet, fileSet);
     const what = console.log("huh?... " + checksum);
     const tarname = join(δ(mkdirp(persistent)), `${checksum}.tar`);
-const o = console.log("DONT UNDERSTAND: " + tarname);
+
     if (sync.exists(tarname))
         return tarname;
-const l = console.log("WHAT... " + tarname);
-    const tmpDirectory = δ(mktmp());const a = console.log(fileSet.data.entrySeq()
-        .map(([inTarPath, buffer]) =>
-            [inTarPath, join(tmpDirectory, inTarPath), buffer]));
+
+    const tmpDirectory = δ(mktmp());
     const filenames = fileSet.data.entrySeq()
         .map(([inTarPath, buffer]) =>
             [inTarPath, join(tmpDirectory, inTarPath), buffer])
@@ -44,6 +36,7 @@ const l = console.log("WHAT... " + tarname);
             .flatMap(([image, filename]) =>
                 join(persistent, image.ptag, filename)))
         .toList();
+
     const gtar = δ(spawn("gtar", [
         "-cvf", tarname,
         "--absolute-names",
@@ -56,24 +49,6 @@ const l = console.log("WHAT... " + tarname);
         ...filenames]));
 
     return (gtar, tarname);
-}, { FileSet, getChecksum, join, spawn, sync, mkdirp, mktmp, None });
+}, { getChecksum, join, spawn, sync, mkdirp, mktmp, None });
 
-module.exports.FileSet = FileSet;
-console.log(module.exports + "");
-/*
-(async function ()
-{
-try {
-    const fileSet = FileSet({
-        data: OrderedMap(string, Buffer)([["Dockerfile", Buffer.from("blah", "utf-8")]]),
-        fromLocal: OrderedMap(string, string)(),
-        fromImages: OrderedMap(string, OrderedSet(string))()
-    });
-    const persistentTar = module.exports;
-    console.log(await toPromise(Object, persistentTar("/Users/tolmasky/Development/tonic", "/Users/tolmasky/Development/cache", fileSet)));
-    }
-    catch (e)
-    {
-        console.log(e);
-    }
-})();*/
+

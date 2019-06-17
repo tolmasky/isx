@@ -8,17 +8,15 @@ const toPromise = require("@cause/cause/to-promise");
 const spawn = require("@cause/task/spawn");
 const fs = require("fs");
 const { join, mkdirp, write } = require("@cause/task/fs");
-const map = require("@cause/task/map");
 const getChecksum = require("./get-checksum");
 const CACHE = require("path").resolve("../cache");
 const FileSet = require("./file-set");
 const Image = require("./image");
-const tar = require("./tar");
 const persistentTar = require("./persistent-tar");
 const BUILD = require("./_file-set");
 
 
-const build = toPooled(function build(playbook)
+function build(playbook)
 {
     const buildContext = δ(BUILD(playbook));
     const image = δ(BUILD.toDockerImage(
@@ -27,7 +25,7 @@ const build = toPooled(function build(playbook)
     const ll = console.log("THEN ALL DONE?... " + image);
 
     return ll;
-}, { CACHE, getChecksum, FileSet, List, string, spawn, console, write, is, Playbook, Instruction, fs, None, map, of, mkdirp, Image, tar, join, Buffer, persistentTar, OrderedMap, OrderedSet, BUILD });
+}
 console.log(build+"");
 module.exports = async function build_({ filename, push, sequential }, properties)
 {

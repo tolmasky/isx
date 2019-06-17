@@ -1,8 +1,6 @@
 const { is, data, string, number } = require("@algebraic/type");
 const { Optional, None } = require("@algebraic/type/optional");
 const { List, OrderedMap, OrderedSet } = require("@algebraic/collections");
-const toPooled = require("@cause/task/transform/to-pooled");
-const map = require("@cause/task/map");
 const getChecksum = require("./get-checksum");
 const persistentTar = require("./persistent-tar");
 const spawn = require("@cause/task/spawn");
@@ -54,7 +52,7 @@ const toShasumMap = (function ()
         ["shasum", ["-a", "256"]] : ["sha256sum"]));
     const ShasumRegExp = /([a-z0-9]{64})\s{2}([^\n]+)\n/g;
 
-    return toPooled(function shasums({ root, filenames })
+    return function shasums({ root, filenames })
     {
         if (filenames.size === 0)
             return OrderedMap(string, string)();
@@ -65,10 +63,10 @@ const toShasumMap = (function ()
             .map(([, checksum, filename]) => [filename, checksum]);
 
         return OrderedMap(string, string)(entries);
-    }, { OrderedMap, string, shasum, ShasumRegExp });
+    }
 })();
 
-const toLocal = toPooled(function (workspace, workspacePatterns)
+const toLocal = function (workspace, workspacePatterns)
 {
     if (workspacePatterns.size <= 0)
         return [None, List(string)(), OrderedMap(string, string)()];
@@ -93,9 +91,9 @@ const toLocal = toPooled(function (workspace, workspacePatterns)
     const resulting = console.log("MY FROM LOCAL IS EASY: " + fromLocal);
 
     return [root, tarPatterns, fromLocal];
-}, { common, join, sep, relative, resolve, glob, toShasumMap, List, string, OrderedMap, None });
+}
 
-const toDockerImage = toPooled(function (persistent, buildContext)
+const toDockerImage = function (persistent, buildContext)
 {//const aa = console.log("aBOTU TO BUIDL " + buildContext);
     const { fileSet } = buildContext;
     const ptag = FileSet.toPersistentTag(fileSet);
@@ -115,9 +113,9 @@ const toDockerImage = toPooled(function (persistent, buildContext)
         { stdio: [tarStream, "pipe", "pipe"] }));
 
     return (dockerOutput, Image({ ptag }));
-}, { spawn, FileSet, fs, persistentTar, Image });
+}
 
-const toImage = toPooled(function (persistent, playbook, patterns)
+const toImage = function (persistent, playbook, patterns)
 {
     const fromPlaybook = FileSet.fromPlaybook;
     const buildContext = δ(fromPlaybook(playbook));
@@ -161,7 +159,7 @@ const aa = console.log("MISSING: " + missing);
     const written = untarred && δ(write(globname, JSON.stringify(filenames)));
 
     return (written, [image, filenames]);
-}, { FileSet, List, string, getChecksum, write, sync, mkdirp, join, glob, toDockerImage, Image, spawn, toReadableStream, OrderedSet });
+}
 
 function toReadableStream(string)
 {
@@ -197,7 +195,7 @@ function toReadableStream(string)
     return [image.id, image];*/
 
 
-const fromPlaybook = toPooled(function (playbook)
+const fromPlaybook = function (playbook)
 {
 //    const rr = console.log("RUNNING fromPlaybook: " + playbook);
     const { instructions } = playbook;
@@ -243,7 +241,7 @@ const fromPlaybook = toPooled(function (playbook)
     });
 
     return BuildContext({ root, fileSet });
-}, { toLocal, console, is, List, string, None, OrderedMap, Buffer, OrderedSet, FileSet, Buffer, Playbook, number, toImage, map, BuildContext, Image, join });
+}
 
 FileSet.fromPlaybook = fromPlaybook;
 

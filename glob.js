@@ -2,7 +2,6 @@ const { is, string } = require("@algebraic/type");
 const { OrderedSet } = require("@algebraic/collections");
 const spawn = require("@cause/task/spawn");
 const { join } = require("@cause/task/fs");
-const toPooled = require("@cause/task/transform/to-pooled");
 
 const sync = (fs =>
     ({ exists: fs.existsSync, write: fs.writeFileSync, read: fs.readFileSync }))
@@ -12,7 +11,7 @@ const find = (...args) => spawn("find", args);
 const findInDocker = (tag, ...args) =>
     spawn("docker", ["run", "--rm", tag, "find", "/", ...args]);
 
-module.exports = toPooled(function glob({ origin, patterns })
+module.exports = function glob({ origin, patterns })
 {
     const rr = console.log("ABOUT TO GLOB OVER: " + origin + " " + patterns);
     const local = is(string, origin);
@@ -40,4 +39,4 @@ module.exports = toPooled(function glob({ origin, patterns })
     const u = console.log("AND GOT " + filenames);
 
     return OrderedSet(string)(filenames);
-}, { find, findInDocker, is, string, join, OrderedSet });
+}

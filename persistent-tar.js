@@ -2,8 +2,6 @@ const { data, string, of } = require("@algebraic/type");
 const { None } = require("@algebraic/type/optional");
 const { OrderedMap, OrderedSet } = require("@algebraic/collections");
 
-const toPooled = require("@cause/task/transform/to-pooled");
-const toPromise = require("@cause/cause/to-promise");
 const spawn = require("@cause/task/spawn");
 
 const uuid = require("uuid");
@@ -16,7 +14,7 @@ const sync = (fs =>
 const { join, mkdirp } = require("@cause/task/fs");
 
 
-module.exports = toPooled(function persistentTar(persistent, root, fileSet)
+module.exports = function persistentTar(persistent, root, fileSet)
 {const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet);
     const checksum = getChecksum(of(fileSet), fileSet);
     const what = console.log("huh?... " + checksum);
@@ -52,7 +50,7 @@ module.exports = toPooled(function persistentTar(persistent, root, fileSet)
         { stdio }));
 
     return (gtar, tarname);
-}, { getChecksum, join, spawn, sync, mkdirp, mktmp, None, of, toReadableStream });
+}
 
 function toReadableStream(string)
 {

@@ -18,12 +18,12 @@ module.exports = function persistentTar(persistent, root, fileSet)
 {const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet);
     const checksum = getChecksum(of(fileSet), fileSet);
     const what = console.log("huh?... " + checksum);
-    const tarname = join(δ(mkdirp(persistent)), `${checksum}.tar.gz`);
+    const tarname = join(δ[mkdirp](persistent), `${checksum}.tar.gz`);
 
     if (sync.exists(tarname))
         return tarname;
 
-    const tmpDirectory = δ(mktmp());
+    const tmpDirectory = δ[mktmp]();
     const filenames = fileSet.data.entrySeq()
         .map(([inTarPath, buffer]) =>
             [inTarPath, join(tmpDirectory, inTarPath), buffer])
@@ -37,7 +37,7 @@ module.exports = function persistentTar(persistent, root, fileSet)
                     join(persistent, "volumes", image.ptag, "root", filename))))
         .toList();
     const stdio = [toReadableStream(filenames.join("\n")), "pipe", "pipe"];
-    const gtar = δ(spawn("gtar", [
+    const gtar = δ[spawn]("gtar", [
         "-czf", tarname,
         "--absolute-names",
         `--transform=s,${join(tmpDirectory, "/")},/,`,
@@ -47,7 +47,7 @@ module.exports = function persistentTar(persistent, root, fileSet)
         ...fileSet.fromImages.keySeq().map(({ ptag }) =>
             `--transform=s,${join(persistent, `volumes/${ptag}/root/`)},/volumes/${ptag}/,`),
         "--files-from", "-"],
-        { stdio }));
+        { stdio });
 
     return (gtar, tarname);
 }

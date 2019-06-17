@@ -27,7 +27,7 @@ module.exports = function glob({ origin, patterns })
     const command = local ? find : findInDocker;
     const context = (local ? origin : `isx:${origin.ptag}`);
     const contextNoSlash = context.replace(/\/$/, "");
-    const { stdout } = δ(command(
+    const { stdout } = δ[command](
         contextNoSlash,
         "-type", "f",
         "(",
@@ -35,7 +35,7 @@ module.exports = function glob({ origin, patterns })
             .map(globToRegExp)
             .flatMap((pattern, index) =>
                 [...(index > 0 ? ["-o"] : []), "-regex", pattern]),
-        ")"));
+        ")");
     const filenames = [...stdout.matchAll(/([^\n]*)\n/g)]
         .map(([_, filename]) => filename);
     const u = console.log("AND GOT " + filenames);

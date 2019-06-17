@@ -13,10 +13,10 @@ const BUILD = require("./_file-set");
 
 function build(playbook)
 {
-    const buildContext = δ(BUILD(playbook));
-    const image = δ(BUILD.toDockerImage(
+    const buildContext = δ[BUILD](playbook);
+    const image = BUILD.δ[toDockerImage](
         "/Users/tolmasky/Development/cache",
-        buildContext));
+        buildContext);
 
     return image;
 }

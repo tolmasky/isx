@@ -57,7 +57,7 @@ const toShasumMap = (function ()
         if (filenames.size === 0)
             return OrderedMap(string, string)();
 
-        const { stdout } = δ(shasum(filenames, { cwd: root }));
+        const { stdout } = δ[shasum](filenames, { cwd: root });
         const [...matches] = stdout.matchAll(ShasumRegExp);
         const entries = matches
             .map(([, checksum, filename]) => [filename, checksum]);
@@ -83,10 +83,10 @@ const toLocal = function (workspace, workspacePatterns)
     const x = console.log("SO FAR: " + workspace + " " + root + " " + absolutePatterns + " " + join(workspace, "/").split(sep));
     const rootPatterns = absolutePatterns
         .map(pattern => relative(root, pattern));
-    const filenames = δ(glob({ origin: root, patterns: rootPatterns }))
+    const filenames = δ[glob]({ origin: root, patterns: rootPatterns })
         .map(filename => relative(root, filename));
 
-    const fromLocal = δ(toShasumMap({ root, filenames }));
+    const fromLocal = δ[toShasumMap]({ root, filenames });
     const tarPatterns = rootPatterns.map(pattern => join("root", pattern));
     const resulting = console.log("MY FROM LOCAL IS EASY: " + fromLocal);
 
@@ -97,20 +97,20 @@ const toDockerImage = function (persistent, buildContext)
 {//const aa = console.log("aBOTU TO BUIDL " + buildContext);
     const { fileSet } = buildContext;
     const ptag = FileSet.toPersistentTag(fileSet);
-    const exists = δ(spawn("docker",
+    const exists = δ[spawn]("docker",
         ["image", "inspect", `isx:${ptag}`],
-        { rejectOnError: false })).exitCode === 0;
+        { rejectOnError: false }).exitCode === 0;
 
     if (exists)
         return Image({ ptag });
 
-    const tarPath = δ(persistentTar(persistent, buildContext.root, fileSet));
+    const tarPath = δ[persistentTar](persistent, buildContext.root, fileSet);
     const tt = console.log("PATH: " + tarPath);
     const tarStream = fs.createReadStream(tarPath);
     const r = console.log(`cat ${tarPath} | ` + ["docker", "build", "-", "-t", `isx:${ptag}`].join(" "));
-    const dockerOutput = δ(spawn("docker",
+    const dockerOutput = δ[spawn]("docker",
         ["build", "-", "-t", `isx:${ptag}`],
-        { stdio: [tarStream, "pipe", "pipe"] }));
+        { stdio: [tarStream, "pipe", "pipe"] });
 
     return (dockerOutput, Image({ ptag }));
 }
@@ -118,26 +118,26 @@ const toDockerImage = function (persistent, buildContext)
 const toImage = function (persistent, playbook, patterns)
 {
     const fromPlaybook = FileSet.fromPlaybook;
-    const buildContext = δ(fromPlaybook(playbook));
+    const buildContext = δ[fromPlaybook](playbook);
     const ptag = FileSet.toPersistentTag(buildContext.fileSet);
     const checksum = getChecksum(List(string), patterns);
-    const volume = δ(mkdirp(join(persistent, "volumes", ptag)));
-    const globs = δ(mkdirp(join(volume, "globs")));
+    const volume = δ[mkdirp](join(persistent, "volumes", ptag));
+    const globs = δ[mkdirp](join(volume, "globs"));
     const globname = join(globs, `${checksum}.json`);
 
     if (sync.exists(globname))
         return [Image({ ptag }),
             OrderedSet(string)(JSON.parse(sync.read(globname, "utf-8")))];
 const aa2 = console.log("BC: " + buildContext);
-    const image = δ(toDockerImage(persistent, buildContext));
-    const filenames = δ(glob({ origin: image, patterns }));
-    const root = δ(mkdirp(join(volume, "root")));
+    const image = δ[toDockerImage](persistent, buildContext);
+    const filenames = δ[glob]({ origin: image, patterns });
+    const root = δ[mkdirp](join(volume, "root"));
     const missing = filenames
         .filter(filename => !sync.exists(join(root, filename)));
 
     if (missing.size <= 0)
     {
-        const written = δ(write(globname, JSON.stringify(filenames)));
+        const written = δ[write](globname, JSON.stringify(filenames));
 
         return (written, [image, filenames]);
     }
@@ -145,18 +145,18 @@ const aa = console.log("MISSING: " + missing);
     // FIXME: We shouldn't need the Date.now() once we have deduping.
     const name = image.ptag + Date.now();
     const stdio = [toReadableStream(missing.join("\n")), "pipe", "pipe"];
-    const tarname = join(δ(mkdirp(join(volume, "tars"))), `${checksum}.tar`);
+    const tarname = join(δ[mkdirp](join(volume, "tars")), `${checksum}.tar`);
     const tarnameRemote = `/${checksum}.tar`;
-    const tarred = δ(spawn("docker",
+    const tarred = δ[spawn]("docker",
     [
         "run", "-i", "--name", name, `isx:${image.ptag}`,
         "tar", "-cvf", tarnameRemote, "--files-from", "-"
-    ], { stdio }));
+    ], { stdio });
     const rr = console.log("REMOTE: " + tarnameRemote + " " + tarred);
-    const copied = tarred && δ(spawn("docker",
-        ["cp", `${name}:${tarnameRemote}`, tarname]));
-    const untarred = copied && δ(spawn("tar", ["-xf", tarname, "-C", root]));
-    const written = untarred && δ(write(globname, JSON.stringify(filenames)));
+    const copied = tarred && δ[spawn]("docker",
+        ["cp", `${name}:${tarnameRemote}`, tarname]);
+    const untarred = copied && δ[spawn]("tar", ["-xf", tarname, "-C", root]);
+    const written = untarred && δ[write](globname, JSON.stringify(filenames));
 
     return (written, [image, filenames]);
 }
@@ -205,17 +205,17 @@ const fromPlaybook = function (playbook)
         .groupBy(([, instruction]) => instruction.from)
         .map(includes => includes.map(([index]) => index));
     const indexesLocal = grouped.get(None, List(number)());
-    const [root, rootPatterns, fromLocal] = δ(toLocal(
+    const [root, rootPatterns, fromLocal] = δ[toLocal](
         playbook.workspace,
-        indexesLocal.map(index => instructions.get(index).source)));
+        indexesLocal.map(index => instructions.get(index).source));
 
     const includesFromVolumes = grouped.remove(None).entrySeq();
     const fromImages = OrderedMap(Image, OrderedSet(string))(
-        δ(includesFromVolumes.map(([playbook, indexes]) =>
+        includesFromVolumes.δ[map](([playbook, indexes]) =>
             toImage(
                 "/Users/tolmasky/Development/cache",
                 playbook,
-                indexes.map(index => instructions.get(index).source)))));
+                indexes.map(index => instructions.get(index).source))));
 
     const rootInstructions = includesFromVolumes
         .zipWith(([, indexes], [image]) =>
@@ -242,6 +242,8 @@ const fromPlaybook = function (playbook)
 
     return BuildContext({ root, fileSet });
 }
+
+console.log(fromPlaybook+"");
 
 FileSet.fromPlaybook = fromPlaybook;
 

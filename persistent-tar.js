@@ -20,12 +20,12 @@ module.exports = toPooled(function persistentTar(persistent, root, fileSet)
 {const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet);
     const checksum = getChecksum(of(fileSet), fileSet);
     const what = console.log("huh?... " + checksum);
-    const tarname = join(δ(mkdirp(persistent)), `${checksum}.tar`);
+    const tarname = join(δ(mkdirp(persistent)), `${checksum}.tar.gz`);
 
     if (sync.exists(tarname))
         return tarname;
 
-    const tmpDirectory = δ(mktmp());const u = console.log("SO FAR SO GOOD... " + tmpDirectory);
+    const tmpDirectory = δ(mktmp());
     const filenames = fileSet.data.entrySeq()
         .map(([inTarPath, buffer]) =>
             [inTarPath, join(tmpDirectory, inTarPath), buffer])
@@ -38,9 +38,9 @@ module.exports = toPooled(function persistentTar(persistent, root, fileSet)
                 filenames.map(filename =>
                     join(persistent, "volumes", image.ptag, "root", filename))))
         .toList();
-
+    const stdio = [toReadableStream(filenames.join("\n")), "pipe", "pipe"];
     const gtar = δ(spawn("gtar", [
-        "-cvf", tarname,
+        "-czf", tarname,
         "--absolute-names",
         `--transform=s,${join(tmpDirectory, "/")},/,`,
         ...(root === None ?
@@ -48,9 +48,18 @@ module.exports = toPooled(function persistentTar(persistent, root, fileSet)
             [`--transform=s,${join(root, "/")},/root/,`]),
         ...fileSet.fromImages.keySeq().map(({ ptag }) =>
             `--transform=s,${join(persistent, `volumes/${ptag}/root/`)},/volumes/${ptag}/,`),
-        ...filenames]));
+        "--files-from", "-"],
+        { stdio }));
 
     return (gtar, tarname);
-}, { getChecksum, join, spawn, sync, mkdirp, mktmp, None, of });
+}, { getChecksum, join, spawn, sync, mkdirp, mktmp, None, of, toReadableStream });
 
+function toReadableStream(string)
+{
+    const stream = new (require("stream").Readable);
 
+    stream.push(string);
+    stream.push(null);
+
+    return stream;
+}

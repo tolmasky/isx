@@ -13,8 +13,9 @@ const glob = require("./glob");
 
 const { join, write, mkdirp } = require("@cause/task/fs");
 const { sep, resolve, relative } = require("path");
-const common = (lhs, rhs) => lhs
-    .slice(0, lhs.findIndex((component, index) => component != rhs[index]))
+const common = (lhs, rhs) =>
+    (index => index === -1 ? lhs : lhs.slice(0, index))
+    (lhs.findIndex((component, index) => component !== rhs[index]))
 
 const sync = (fs =>
     ({ exists: fs.existsSync, write: fs.writeFileSync, read: fs.readFileSync }))
@@ -47,7 +48,7 @@ const toShasumMap = (function ()
     const spawn = require("@cause/task/spawn");
     const command = (binary, prefix) =>
         (args, options = { }) =>
-            spawn(binary, [...prefix, ...args]);
+            spawn(binary, [...prefix, ...args], options);
     const darwin = require("os").platform() === "darwin";
     const shasum = command(...(darwin ?
         ["shasum", ["-a", "256"]] : ["sha256sum"]));
@@ -58,7 +59,7 @@ const toShasumMap = (function ()
         if (filenames.size === 0)
             return OrderedMap(string, string)();
 
-        const { stdout } = δ(shasum(filenames));
+        const { stdout } = δ(shasum(filenames, { cwd: root }));
         const [...matches] = stdout.matchAll(ShasumRegExp);
         const entries = matches
             .map(([, checksum, filename]) => [filename, checksum]);
@@ -81,7 +82,7 @@ const toLocal = toPooled(function (workspace, workspacePatterns)
             common(root, pattern.split(sep)),
             join(workspace, "/").split(sep))
         .join(sep);
-    const x = console.log("SO FAR: " + root);
+    const x = console.log("SO FAR: " + root + " " + absolutePatterns + " " + join(workspace, "/").split(sep));
     const rootPatterns = absolutePatterns
         .map(pattern => relative(root, pattern));
     const filenames = δ(glob({ origin: root, patterns: rootPatterns }))
@@ -95,7 +96,7 @@ const toLocal = toPooled(function (workspace, workspacePatterns)
 }, { common, join, sep, relative, resolve, glob, toShasumMap, List, string, OrderedMap, None });
 
 const toDockerImage = toPooled(function (persistent, buildContext)
-{const aa = console.log("aBOTU TO BUIDL " + buildContext);
+{//const aa = console.log("aBOTU TO BUIDL " + buildContext);
     const { fileSet } = buildContext;
     const ptag = FileSet.toPersistentTag(fileSet);
     const exists = δ(spawn("docker",
@@ -108,6 +109,7 @@ const toDockerImage = toPooled(function (persistent, buildContext)
     const tarPath = δ(persistentTar(persistent, buildContext.root, fileSet));
     const tt = console.log("PATH: " + tarPath);
     const tarStream = fs.createReadStream(tarPath);
+    const r = console.log(`cat ${tarPath} | ` + ["docker", "build", "-", "-t", `isx:${ptag}`].join(" "));
     const dockerOutput = δ(spawn("docker",
         ["build", "-", "-t", `isx:${ptag}`],
         { stdio: [tarStream, "pipe", "pipe"] }));
@@ -197,7 +199,7 @@ function toReadableStream(string)
 
 const fromPlaybook = toPooled(function (playbook)
 {
-    const rr = console.log("RUNNING fromPlaybook: " + playbook);
+//    const rr = console.log("RUNNING fromPlaybook: " + playbook);
     const { instructions } = playbook;
     const includes = instructions.entrySeq()
         .filter(([, instruction]) => is(include, instruction)).toList();

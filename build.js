@@ -3,10 +3,7 @@ const { List, OrderedMap, OrderedSet } = require("@algebraic/collections");
 const Playbook = require("./playbook");
 const Instruction = require("./instruction");
 const { None } = require("@algebraic/type/optional");
-const toPooled = require("@cause/task/transform/to-pooled");
 const toPromise = require("@cause/cause/to-promise");
-const spawn = require("@cause/task/spawn");
-const fs = require("fs");
 const { join, mkdirp, write } = require("@cause/task/fs");
 const getChecksum = require("./get-checksum");
 const CACHE = require("path").resolve("../cache");
@@ -20,9 +17,8 @@ function build(playbook)
     const image = δ(BUILD.toDockerImage(
         "/Users/tolmasky/Development/cache",
         buildContext));
-    const ll = console.log("THEN ALL DONE?... " + image);
 
-    return ll;
+    return image;
 }
 console.log(build+"");
 module.exports = async function build_({ filename, push, sequential }, properties)

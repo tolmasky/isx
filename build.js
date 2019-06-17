@@ -10,8 +10,6 @@ const fs = require("fs");
 const { join, mkdirp, write } = require("@cause/task/fs");
 const getChecksum = require("./get-checksum");
 const CACHE = require("path").resolve("../cache");
-const FileSet = require("./file-set");
-const Image = require("./image");
 const persistentTar = require("./persistent-tar");
 const BUILD = require("./_file-set");
 

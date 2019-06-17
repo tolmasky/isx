@@ -80,7 +80,7 @@ const toLocal = function (workspace, workspacePatterns)
             common(root, pattern.split(sep)),
             join(workspace, "/").split(sep))
         .join(sep);
-    const x = console.log("SO FAR: " + root + " " + absolutePatterns + " " + join(workspace, "/").split(sep));
+    const x = console.log("SO FAR: " + workspace + " " + root + " " + absolutePatterns + " " + join(workspace, "/").split(sep));
     const rootPatterns = absolutePatterns
         .map(pattern => relative(root, pattern));
     const filenames = δ(glob({ origin: root, patterns: rootPatterns }))

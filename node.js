@@ -2,27 +2,38 @@ const playbook = require("./playbook");
 const tarname = version => `node-v${version}-linux-x64.tar.xz`;
 const fs = require("fs");
 const { join } = require("@cause/task/fs");
+const required = (name, f) =>
+    { throw TypeError(`${name} is required when calling ${f}`) }
+const rversion = tag => required("version", `<node.${tag}/>`);
 
 const node =
 {
     keys: () => <run>{keys}</run>,
 
-    playbook: ({ version }) =>
-        <playbook tag = { `node-${version}` } from = "buildpack-deps:jessie" >
-            <node.keys/>
-            <run>
-                {[
-                    `curl -SLO "https://nodejs.org/dist/v${version}/${tarname(version)}"`,
-                    `curl -SLO "https://nodejs.org/dist/v${version}/SHASUMS256.txt.asc"`,
-                    `gpg --batch --decrypt --output SHASUMS256.txt SHASUMS256.txt.asc`,
-                    `grep " ${tarname(version)}\\$" SHASUMS256.txt | sha256sum -c -`
-                ].join(" && ")}
-            </run>
-        </playbook>,
+    playbook({ version = rversion("playbook") })
+    {
+        const filename = tarname(version);
+        const shasum = "SHASUMS256.txt";
+        const versionURL = `https://nodejs.org/dist/v${version}`;
 
-    install: ({ version, destination = "/usr/local" }) => [
+        return  <playbook   tag = { `node-${version}` }
+                            from = "buildpack-deps:jessie" >
+                    <node.keys/>
+                    <run>
+                        {[
+                            `curl -SLO "${versionURL}/${filename}"`,
+                            `curl -SLO "${versionURL}/${shasum}.asc"`,
+                            `gpg --batch --decrypt --output ${shasum} ${shasum}.asc`,
+                            `grep " ${filename}\\$" ${shasum} | sha256sum -c -`
+                        ].join(" && ")}
+                    </run>
+                </playbook>;
+    },
+
+    install: ({ version = rversion("install"), destination = "/usr/local" }) =>
+    [
         <copy   from = { <node.playbook version = { version } /> }
-                source = { `node-v${version}-linux-x64.tar.xz` }
+                source = { tarname(version) }
                 destination = "/" />,
         <run>
         {[
@@ -38,7 +49,7 @@ const node =
             <copy   from = { <node.npm.install.playbook
                                 { ...{ source, version } } /> }
                     source = "app/node_modules"
-                    destination = { (console.log(version + "-->" + destination + "/"), join(destination, "/")) } />
+                    destination = { join(destination, "/") } />
     }
 }
 

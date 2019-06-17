@@ -1,6 +1,8 @@
 const { data, union, string, type } = require("@algebraic/type");
 const { Optional, None } = require("@algebraic/type/optional");
 const { base, getArguments } = require("generic-jsx");
+const { hasOwnProperty } = Object;
+const has = (key, object) => hasOwnProperty.call(object, key);
 
 const getPlaybook = () => require("./playbook");
 
@@ -82,15 +84,19 @@ instruction.user.render = ({ name }) => `USER ${name}`;
 instruction.run.render = ({ PATH, command }) =>
     `RUN ${PATH === None ? command : `PATH=${PATH} && ${command}`}`;
 
-instruction.workdir.render = ({ name }) => `WORKDIR ${name}`;
+instruction.workdir.render = ({ path }) => `WORKDIR ${path}`;
 
 instruction.user.render = ({ name }) => `USER ${name}`;
 instruction.volume.render = ({ name }) => `VOLUME ${name}`;
 
+// FIXME: Never allow undefined?...
+const optionalPath = T => args =>
+    !!args.PATH ? T(args) : T({ ...args, PATH: None });
+
 const fromChildren = (T, key) =>
     ({ children, ...rest }) => T({ ...rest, [key]: children.join("") });
 
-instruction.run.fromXML = fromChildren(instruction.run, "command");
+instruction.run.fromXML = fromChildren(optionalPath(instruction.run), "command");
 instruction.workdir.fromXML = fromChildren(instruction.workdir, "path");
 instruction.user.fromXML = fromChildren(instruction.user, "name");
 

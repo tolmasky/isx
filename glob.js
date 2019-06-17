@@ -30,10 +30,12 @@ module.exports = function glob({ origin, patterns })
     const { stdout } = δ(command(
         contextNoSlash,
         "-type", "f",
+        "(",
         ...patterns
             .map(globToRegExp)
             .flatMap((pattern, index) =>
-                [...(index > 0 ? ["-o"] : []), "-regex", pattern])));
+                [...(index > 0 ? ["-o"] : []), "-regex", pattern]),
+        ")"));
     const filenames = [...stdout.matchAll(/([^\n]*)\n/g)]
         .map(([_, filename]) => filename);
     const u = console.log("AND GOT " + filenames);

@@ -1,10 +1,13 @@
 const playbook = require("./playbook");
+const { copy, run } = require("./instruction");
+
 const tarname = version => `node-v${version}-linux-x64.tar.xz`;
 const fs = require("fs");
 const { join } = require("@cause/task/fs");
 const required = (name, f) =>
     { throw TypeError(`${name} is required when calling ${f}`) }
 const rversion = tag => required("version", `<node.${tag}/>`);
+
 
 const node =
 {
@@ -16,7 +19,7 @@ const node =
         const shasum = "SHASUMS256.txt";
         const versionURL = `https://nodejs.org/dist/v${version}`;
 
-        return  <playbook   tag = { `node-${version}` }
+        return  <playbook   tag = { `node-${version}-tar` }
                             from = "buildpack-deps:jessie" >
                     <node.keys/>
                     <run>
@@ -29,6 +32,12 @@ const node =
                     </run>
                 </playbook>;
     },
+    
+    base: ({ version = rversion("playbook") }) =>
+        <playbook   tag = { `node-${version}` }
+                    from = "buildpack-deps:jessie" >
+            <node.install version = { version } />
+        </playbook>,
 
     install: ({ version = rversion("install"), destination = "/usr/local" }) =>
     [
@@ -53,7 +62,25 @@ const node =
     }
 }
 
+node.npm = ({ versions }) =>
+    <playbook   tag = { `node-${versions.node}` }
+                    from = "buildpack-deps:jessie" >
+        <node.install version = { version } />
+    </playbook>;
 
+node.yarn = ({ versions }) =>
+    <playbook   tag = { `node-${versions.node}-yarn-${versions.yarn}` }
+                from = "buildpack-deps:jessie" >
+        <node.install version = { versions.node } />
+        <run>
+        {[
+            "curl -o- -L https://yarnpkg.com/install.sh",
+            `bash -s -- --version ${versions.yarn}`
+        ].join(" | ")}
+        </run>
+    </playbook>;
+
+/*
 node.npm.install.playbook = function ({ version, source })
 {
     const packageJSON = require(`${source}/package.json`);
@@ -82,7 +109,7 @@ node.npm.install.playbook = function ({ version, source })
 
                 <run>{`cd /app && npm install`}</run>
             </playbook>;
-}
+}*/
 
 
 

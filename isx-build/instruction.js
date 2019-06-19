@@ -59,7 +59,9 @@ function toInclude(method)
 {
     return function ({ from: uncompiled = None, source, destination })
     {
+        const image = require("./image_").δ[build](from);
         const { compile } = getPlaybook();
+const x = console.log("FROM IS " + uncompiled);
         const from = uncompiled !== None ? compile(uncompiled) : None;
 
         return instruction.include({ method, from, source, destination });

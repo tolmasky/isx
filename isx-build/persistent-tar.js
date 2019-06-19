@@ -16,7 +16,7 @@ const { join, mkdirp, write } = require("@cause/task/fs");
 
 
 module.exports = function persistentTar(persistent, root, fileSet, dockerfileContents)
-{const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet);
+{const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet + dockerfileContents);
     // FIXME: CHECKSUM WITH DOCKERFILE!
     const checksum = getChecksum(string, dockerfileContents);
 

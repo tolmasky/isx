@@ -9,6 +9,9 @@ const getChecksum = require("./get-checksum");
 const CACHE = require("path").resolve("../cache");
 const persistentTar = require("./persistent-tar");
 const BUILD = require("./_file-set");
+const { Dependency } = require("@cause/task/dependent");
+const fail = (type, message) => { throw type(message); }
+const { base, getArguments } = require("generic-jsx");
 
 
 function build(playbook)
@@ -71,3 +74,38 @@ function FIXME_registerGenericJSX()
 
     global.node = require("./node");
 }
+
+
+function force(value)
+{
+    return is(Dependency, value) ? value : Task.Success({ value });
+}
+
+module.exports.build___ = function build(element)
+{const r = console.log("HERE FOR " + element);
+    const args = getArguments(element);
+    const f = base(element);
+    const fromXML = f.fromXML;
+
+    if (fromXML)
+        return δ[force](fromXML(args));
+
+    if (element === false)
+        return false;
+
+    const ptype = Array.isArray(element) ? "array" : typeof element;
+
+    if (ptype === "array")
+        return []
+            .concat(...element.δ[map](build))
+            .filter(built => built !== false);
+
+    if (ptype === "function")
+        return δ[build](δ[force](element()));
+
+    if (!is(Instruction, element))
+        return fail(Error, `Unexpected ${type} when evaluating isx.`);
+
+    return element;
+}
+

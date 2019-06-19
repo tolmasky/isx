@@ -15,6 +15,11 @@ const persistentTar = require("./persistent-tar");
 const Image = data `Image` (
     ptag    => string );
 
+const BuildContext = data `BuildContext` (
+    dockerfile  => string,
+    fileSet     => OrderedMap(string, string)
+);
+
 module.exports = function image({ from, workspace, ...args })
 {const a = console.log("OK IN HERE");
     const instructions =
@@ -23,7 +28,9 @@ module.exports = function image({ from, workspace, ...args })
     const [root, patterns, fileSet] = toFileSet(
         workspace,
         instructions.filter(is(Instruction.copy)));
-    const ptag = getChecksum(OrderedMap(string, string), fileSet);
+    const dockerfile = toDockerfile({ from, instructions });
+    const buildContext = BuildContext({ dockerfile, fileSet });
+    const ptag = getChecksum(BuildContext, buildContext);
     const what = console.log(ptag);
     const what2 = (what, console.log("WHAT: " + docker.image.δ[inspect]([`isx:${ptag}`])));
     const result = docker.image.δ[inspect]([`isx:${ptag}`]);
@@ -35,7 +42,7 @@ module.exports = function image({ from, workspace, ...args })
         return Image({ ptag });
 }
 
-    const dockerfile = toDockerfile({ from, instructions });
+
     const DOCKERFILE = console.log(dockerfile);
     const { persistent } = args;
     const tarPath = δ[persistentTar](persistent, root, fileSet, dockerfile);

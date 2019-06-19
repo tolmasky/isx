@@ -70,7 +70,16 @@ function toMinimalPackage(dependencies)
 }
 
 const toInstructions = install =>
-    <run>{ `curl -SLO "host.docker.internal/${install}"` }</run>;
+[
+    <run>{ `curl -SLO "http://host.docker.internal:9191/${install}"` }</run>,
+    <run>
+    {[
+        `mkdir /node_modules`,
+        `tar -xzf "/${basename(install)}" -C /node_modules/ --strip-components=1`,
+        `rm "/${basename(install)}"`
+    ].join(" && ")}
+    </run>
+];
 
 /*
 (async function ()

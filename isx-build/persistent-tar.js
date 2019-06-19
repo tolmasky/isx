@@ -1,6 +1,7 @@
+const { dirname } = require("path");
 const { data, string, of } = require("@algebraic/type");
 const { None } = require("@algebraic/type/optional");
-const { OrderedMap, OrderedSet } = require("@algebraic/collections");
+const { OrderedMap, OrderedSet, List } = require("@algebraic/collections");
 
 const spawn = require("@cause/task/spawn");
 
@@ -11,18 +12,28 @@ const mktmp = () => mkdirp(join("/tmp", "isx", uuid.v4()));
 const sync = (fs =>
     ({ exists: fs.existsSync, write: fs.writeFileSync }))
     (require("fs"));
-const { join, mkdirp } = require("@cause/task/fs");
+const { join, mkdirp, write } = require("@cause/task/fs");
 
 
-module.exports = function persistentTar(persistent, root, fileSet)
+module.exports = function persistentTar(persistent, root, fileSet, dockerfileContents)
 {const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet);
-    const checksum = getChecksum(of(fileSet), fileSet);
+    // FIXME: CHECKSUM WITH DOCKERFILE!
+    const checksum = getChecksum(string, dockerfileContents);
+
+//    const checksum = getChecksum(OrderedMap(string, string), fileSet);
     const what = console.log("huh?... " + checksum);
-    const tarname = join(δ[mkdirp](persistent), `${checksum}.tar.gz`);
+    const tarname = join(δ[mkdirp](join(persistent, "tars")), `${checksum}.tar.gz`);
 
     if (sync.exists(tarname))
         return tarname;
 
+
+    const a = console.log(tarname);
+    const dockerfile = δ[write](
+        join(δ[mkdirp](join(persistent, "dockerfiles")), checksum),
+        dockerfileContents);
+    const filenames = List(string)([dockerfile]);
+/*
     const tmpDirectory = δ[mktmp]();
     const filenames = fileSet.data.entrySeq()
         .map(([inTarPath, buffer]) =>
@@ -35,17 +46,15 @@ module.exports = function persistentTar(persistent, root, fileSet)
             .flatMap(([image, filenames]) =>
                 filenames.map(filename =>
                     join(persistent, "volumes", image.ptag, "root", filename))))
-        .toList();
+        .toList();*/
     const stdio = [toReadableStream(filenames.join("\n")), "pipe", "pipe"];
     const gtar = δ[spawn]("gtar", [
         "-czf", tarname,
         "--absolute-names",
-        `--transform=s,${join(tmpDirectory, "/")},/,`,
+        `--transform=s,${dockerfile},/Dockerfile,`,
         ...(root === None ?
             [] :
             [`--transform=s,${join(root, "/")},/root/,`]),
-        ...fileSet.fromImages.keySeq().map(({ ptag }) =>
-            `--transform=s,${join(persistent, `volumes/${ptag}/root/`)},/volumes/${ptag}/,`),
         "--files-from", "-"],
         { stdio });
 

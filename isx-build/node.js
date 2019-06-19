@@ -1,4 +1,4 @@
-const playbook = require("./playbook");
+const playbook = require("./image_");
 const { copy, run } = require("./instruction");
 
 const tarname = version => `node-v${version}-linux-x64.tar.xz`;

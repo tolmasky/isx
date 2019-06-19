@@ -20,7 +20,7 @@ const instruction = union `instruction` (
         port        => number ),
 
     data `include` (
-        from        => [Optional(getPlaybook()), None],
+        from        => [Optional(string), None],
         method      => instruction.include.method,
         source      => string,
         destination => string ),
@@ -57,20 +57,21 @@ instruction.copy = toInclude(instruction.include.method.copy);
 
 function toInclude(method)
 {
-    return function ({ from: uncompiled = None, source, destination })
+    return function ({ from = None, ...rest })
     {
-        const image = require("./image_").δ[build](from);
-        const { compile } = getPlaybook();
-const x = console.log("FROM IS " + uncompiled);
-        const from = uncompiled !== None ? compile(uncompiled) : None;
+        if (from === None)
+            return instruction.include({ method, from, source, destination });
 
-        return instruction.include({ method, from, source, destination });
+        const { ptag } = require("./image_").δ[build](from);
+
+        return instruction.include({ method, from: `isx:${ptag}`, ...rest });
     }
 }
 
 instruction.include.render = ({ method, from, source, destination }) =>
 [
     method === instruction.include.method.add ? "ADD" : "COPY",
+    ...(from === None ? [] : [`--from=${from}`]),
     source,
     destination
 ].join(" ");

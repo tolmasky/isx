@@ -1,5 +1,5 @@
-const playbook = require("./image_");
-const { copy, run } = require("./instruction");
+const image = require("@isx/build/image_");
+const { copy, run } = require("@isx/build/instruction");
 
 const tarname = version => `node-v${version}-linux-x64.tar.xz`;
 const fs = require("fs");
@@ -13,14 +13,15 @@ const node =
 {
     keys: () => <run>{keys}</run>,
 
-    playbook({ version = rversion("playbook") })
+    tar ({ version, persistent }) 
     {
         const filename = tarname(version);
         const shasum = "SHASUMS256.txt";
         const versionURL = `https://nodejs.org/dist/v${version}`;
 
-        return  <playbook   tag = { `node-${version}-tar` }
-                            from = "buildpack-deps:jessie" >
+        return  <image tag = { `isx:node-${version}-tar` }
+                       from = "buildpack-deps:jessie"
+                       persistent = { persistent } >
                     <node.keys/>
                     <run>
                         {[
@@ -30,18 +31,19 @@ const node =
                             `grep " ${filename}\\$" ${shasum} | sha256sum -c -`
                         ].join(" && ")}
                     </run>
-                </playbook>;
+                </image>;
     },
     
-    base: ({ version = rversion("playbook") }) =>
-        <playbook   tag = { `node-${version}` }
-                    from = "buildpack-deps:jessie" >
-            <node.install version = { version } />
-        </playbook>,
+    base: ({ version, persistent }) =>
+        <image  tag = { `isx:node-${version}` }
+                from = "buildpack-deps:jessie"
+                persistent = { persistent } >
+            <node.install persistent = { persistent } version = { version } />
+        </image>,
 
-    install: ({ version = rversion("install"), destination = "/usr/local" }) =>
+    install: ({ version = rversion("install"), destination = "/usr/local", persistent }) =>
     [
-        <copy   from = { <node.playbook version = { version } /> }
+        <copy   from = { <node.tar persistent = { persistent } version = { version } /> }
                 source = { tarname(version) }
                 destination = "/" />,
         <run>
@@ -51,7 +53,7 @@ const node =
         ].join(" && ")}
         </run>
     ],
-
+/*
     npm:
     {
         install: ({ source, destination, version }) =>
@@ -59,9 +61,12 @@ const node =
                                 { ...{ source, version } } /> }
                     source = "app/node_modules"
                     destination = { join(destination, "/") } />
-    }
-}
+    }*/
+};
 
+
+
+/*
 node.npm = ({ versions }) =>
     <playbook   tag = { `node-${versions.node}` }
                     from = "buildpack-deps:jessie" >
@@ -80,7 +85,6 @@ node.yarn = ({ versions }) =>
         </run>
     </playbook>;
 
-/*
 node.npm.install.playbook = function ({ version, source })
 {
     const packageJSON = require(`${source}/package.json`);
@@ -142,3 +146,23 @@ const keys =
     "    gpg --keyserver keyserver.pgp.com --recv-keys \"$key\"; ",
     "  done"
 ].join(" ");
+
+(async function ()
+{
+    try
+    {
+        const versions = { node: "10.15.3", yarn: "1.16.0" };
+        const source = "/Users/tolmasky/Development/tonic/app/package.json";
+        const persistent = "/Users/tolmasky/Development/cache";
+        const toPromise = require("@cause/cause/to-promise");
+        const entrypoint = <image persistent = { persistent } from = "buildpack-deps:jessie" >
+            <node.install persistent = { persistent } version = "10.15.3" />
+        </image>;
+
+        console.log("--> " + await toPromise(Object, entrypoint()));
+    }
+    catch (e)
+    {
+        console.log(e);
+    }
+})();

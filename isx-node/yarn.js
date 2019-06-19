@@ -2,7 +2,7 @@ const image = require("@isx/build/image_");
 const { build } = image;
 const { run } = require("@isx/build/instruction");
 const { join, mkdirp, exists } = require("@cause/task/fs");
-const node = require("@isx/build/node");
+const node = require("@isx/node/node");
 
 const { basename, dirname } = require("path");
 const toVersionKey = versions => Object.keys(versions)
@@ -16,32 +16,8 @@ function yarn({ persistent, versions })
     const from = "buildpack-deps:jessie";
     const tag = `isx:${toVersionKey(versions)}`;
 
-
-const tarname = version => `node-v${version}-linux-x64.tar.xz`;
-        const filename = tarname(versions.node);
-        const shasum = "SHASUMS256.txt";
-        const versionURL = `https://nodejs.org/dist/v${versions.node}`;
-
     return  <image { ...{ from, tag, persistent } } >
-                
-                <node.keys/>
-                <run>
-                    {[
-                        `curl -SLO "${versionURL}/${filename}"`,
-                        `curl -SLO "${versionURL}/${shasum}.asc"`,
-                        `gpg --batch --decrypt --output ${shasum} ${shasum}.asc`,
-                        `grep " ${filename}\\$" ${shasum} | sha256sum -c -`
-                    ].join(" && ")}
-                </run>
-
-        <run>
-        {[
-            `tar -xJf "/${tarname(versions.node)}" -C /usr/local --strip-components=1`,
-            `rm "/${tarname(versions.node)}"`
-        ].join(" && ")}
-        </run>
-                
-{/*                <node.install version = { versions.node } /> */}
+                <node.install version = { versions.node } />
                 <run>
                 {[
                     "curl -o- -L https://yarnpkg.com/install.sh",

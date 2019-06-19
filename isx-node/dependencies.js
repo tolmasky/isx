@@ -1,7 +1,7 @@
 const { basename, relative } = require("path");
 const { object } = require("@algebraic/type");
 
-const node = require("@isx/build/node");
+const node = require("@isx/node/node");
 const build = require("@isx/build/build").build_;
 
 const { join, mkdirp, write, read, exists } = require("@cause/task/fs");

@@ -13,15 +13,14 @@ const node =
 {
     keys: () => <run>{keys}</run>,
 
-    tar ({ version, persistent }) 
+    tar ({ version })
     {
         const filename = tarname(version);
         const shasum = "SHASUMS256.txt";
         const versionURL = `https://nodejs.org/dist/v${version}`;
 
         return  <image tag = { `isx:node-${version}-tar` }
-                       from = "buildpack-deps:jessie"
-                       persistent = { persistent } >
+                       from = "buildpack-deps:jessie" >
                     <node.keys/>
                     <run>
                         {[
@@ -33,17 +32,16 @@ const node =
                     </run>
                 </image>;
     },
-    
-    base: ({ version, persistent }) =>
+
+    base: ({ version }) =>
         <image  tag = { `isx:node-${version}` }
-                from = "buildpack-deps:jessie"
-                persistent = { persistent } >
-            <node.install persistent = { persistent } version = { version } />
+                from = "buildpack-deps:jessie" >
+            <node.install version = { version } />
         </image>,
 
-    install: ({ version = rversion("install"), destination = "/usr/local", persistent }) =>
+    install: ({ version = rversion("install"), destination = "/usr/local" }) =>
     [
-        <copy   from = { <node.tar persistent = { persistent } version = { version } /> }
+        <copy   from = { <node.tar version = { version } /> }
                 source = { tarname(version) }
                 destination = "/" />,
         <run>

@@ -11,12 +11,12 @@ const dependencies = require("./dependencies");
 const fail = (type, message) => { throw type(message); }
 
 
-function yarn({ persistent, versions })
+function yarn({ versions })
 {
     const from = "buildpack-deps:jessie";
     const tag = `isx:${toVersionKey(versions)}`;
 
-    return  <image { ...{ from, tag, persistent } } >
+    return  <image { ...{ from, tag } } >
                 <node.install version = { versions.node } />
                 <run>
                 {[
@@ -44,13 +44,14 @@ const p = console.log(lockfile + "!");
             `No lockfile found in ${parent}. yarn.install requires a ` +
             `lockfile to be present.`); }
 const __ = console.log(lockfile);
+const RR = console.log("RR: " + persistent);
     //const persistent = δ[mkdirp](join(persistent, "yarn", key));const r2 = console.log("... " + persistent);
     const key = join("yarn", toVersionKey(versions));
     const binary = "/root/.yarn/bin/yarn";
-    const image = δ[build](yarn({ persistent, versions }));
+    const image = δ[build](persistent, <yarn { ...{ versions } }/>);
 
 //                { cache => [binary, "config", "set", "cache-folder", cache] }
-    return  <dependencies { ...{ image, source, lockfile, persistent, key } } >
+    return  <dependencies { ...{ image, source, lockfile, key } } >
                 { [binary, "install"] }
             </dependencies>;
 };
@@ -63,11 +64,12 @@ console.log(yarn.install + "");
         const source = "/Users/tolmasky/Development/tonic/app/package.json";
         const persistent = "/Users/tolmasky/Development/cache";
         const toPromise = require("@cause/cause/to-promise");
-        const entrypoint = <image persistent = { persistent } from = "buildpack-deps:jessie" >
-            <yarn.install { ...{ versions, source, persistent } } />
+        const entrypoint = <image from = "buildpack-deps:jessie" >
+            <yarn.install { ...{ versions, source } } />
         </image>;
+        const build = require("../isx-build/image_").build;
 
-        console.log("--> " + await toPromise(Object, entrypoint()));
+        console.log("--> " + await toPromise(Object, build(persistent, entrypoint)));
     }
     catch (e)
     {

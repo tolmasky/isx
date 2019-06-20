@@ -21,10 +21,12 @@ const BuildContext = data `BuildContext` (
 );
 
 module.exports = function image({ from, workspace, ...args })
-{const a = console.log("OK IN HERE");
+{const a = console.log("OK IN HERE ");
+    const { persistent } = args;
+    const r = console.log("IT IS: " + persistent);
     const instructions =
         args.instructions ||
-        δ[build](args.children);
+        δ[build](persistent, args.children);
     const [root, patterns, fileSet] = toFileSet(
         workspace,
         instructions.filter(is(Instruction.copy)));
@@ -44,7 +46,6 @@ module.exports = function image({ from, workspace, ...args })
 
 
     const DOCKERFILE = console.log(dockerfile);
-    const { persistent } = args;
     const tarPath = δ[persistentTar](persistent, root, fileSet, dockerfile);
     const tarStream = fs.createReadStream(tarPath);
     const output = docker.δ[build](
@@ -59,15 +60,15 @@ function toDockerfile({ from, instructions })
     return [`from ${from}`, ...instructions.map(Instruction.render)].join("\n");
 }
 
-function build(element)
-{const aa = console.log("AND NOW GOT", element);
+function build(persistent, element)
+{const aa = console.log("AND NOW GOT", persistent, element);
     const args = getArguments(element);
     const f = base(element);
     const fromXML = f.fromXML;
     const FROM_XML = console.log("BLAH: " + element + " " + fromXML);
 
     if (fromXML)
-        return δ[force](() => fromXML(args));
+        return δ[force](persistent, <fromXML { ...args }/>);
 
     if (element === false)
         return false;
@@ -75,7 +76,7 @@ const l = console.log("AGAIN " + element);
     const ptype = Array.isArray(element) ? "array" : typeof element;
 
     if (ptype === "array") {
-        const result = element.δ[map](build);
+        const result = element.δ[map](child => build(persistent, child));
 
         return []
             .concat(...result)
@@ -83,10 +84,10 @@ const l = console.log("AGAIN " + element);
 
     if (ptype === "function")
     {
-        const result = δ[force](element);
+        const result = δ[force](persistent, element);
         const m = console.log("RESULT: " + result);
 
-        return δ[build](result);
+        return δ[build](persistent, result);
     }
 
     if (is(Image, element))
@@ -102,9 +103,9 @@ const l = console.log("AGAIN " + element);
 
 module.exports.build = build;
 
-function force(f)
-{
-    const value = f();
+function force(persistent, f)
+{console.log(persistent, f);
+    const value = f({ persistent });
 console.log("VALUE: " + value + " " + (is(Dependency, value) ? value : Task.Success({ value })));
     return is(Dependency, value) ? value : Task.Success({ value });
 }

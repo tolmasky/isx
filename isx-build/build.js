@@ -81,14 +81,14 @@ function force(value)
     return is(Dependency, value) ? value : Task.Success({ value });
 }
 
-module.exports.build___ = function build(element)
+module.exports.build___ = function build(persistent, element)
 {const r = console.log("HERE FOR " + element);
     const args = getArguments(element);
     const f = base(element);
     const fromXML = f.fromXML;
 
     if (fromXML)
-        return δ[force](fromXML(args));
+        return δ[force](fromXML({ ...args, persistent }));
 
     if (element === false)
         return false;
@@ -97,11 +97,11 @@ module.exports.build___ = function build(element)
 
     if (ptype === "array")
         return []
-            .concat(...element.δ[map](build))
+            .concat(...element.δ[map](child => build(persistent, child)))
             .filter(built => built !== false);
 
     if (ptype === "function")
-        return δ[build](δ[force](element()));
+        return δ[build](persistent, δ[force](element({ persistent })));
 
     if (!is(Instruction, element))
         return fail(Error, `Unexpected ${type} when evaluating isx.`);

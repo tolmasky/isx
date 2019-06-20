@@ -57,12 +57,12 @@ instruction.copy = toInclude(instruction.include.method.copy);
 
 function toInclude(method)
 {
-    return function ({ from = None, ...rest })
+    return function ({ from = None, persistent, ...rest })
     {
         if (from === None)
             return instruction.include({ method, from, source, destination });
 
-        const { ptag } = require("./image_").δ[build](from);
+        const { ptag } = require("./image_").δ[build](persistent, from);
 
         return instruction.include({ method, from: `isx:${ptag}`, ...rest });
     }

@@ -34,18 +34,16 @@ yarn.install = function ({ source, versions, persistent })
     if (basename(source) !== "package.json")
         return fail(TypeError,
             "source field of yarn.install must point to a package.json file.");
-const m = console.log(source, versions, persistent);
+
     const parent = dirname(source);
     const lockfile = δ[exists](join(parent, "yarn.lock"));
-const p = console.log(lockfile + "!");
-    if (!lockfile) {
-    const m = console.log("what?" + lockfile);
+
+    if (!lockfile)
         return fail(Error,
             `No lockfile found in ${parent}. yarn.install requires a ` +
-            `lockfile to be present.`); }
-const __ = console.log(lockfile);
-const RR = console.log("RR: " + persistent);
-    //const persistent = δ[mkdirp](join(persistent, "yarn", key));const r2 = console.log("... " + persistent);
+            `lockfile to be present.`);
+
+    //const persistent = δ[mkdirp](join(persistent, "yarn", key));
     const key = join("yarn", toVersionKey(versions));
     const binary = "/root/.yarn/bin/yarn";
     const image = δ[build](persistent, <yarn { ...{ versions } }/>);
@@ -55,7 +53,7 @@ const RR = console.log("RR: " + persistent);
                 { [binary, "install"] }
             </dependencies>;
 };
-console.log(yarn.install + "");
+
 (async function ()
 {
     try

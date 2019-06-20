@@ -50,70 +50,8 @@ const node =
             `rm "/${tarname(version)}"`
         ].join(" && ")}
         </run>
-    ],
-/*
-    npm:
-    {
-        install: ({ source, destination, version }) =>
-            <copy   from = { <node.npm.install.playbook
-                                { ...{ source, version } } /> }
-                    source = "app/node_modules"
-                    destination = { join(destination, "/") } />
-    }*/
+    ]
 };
-
-
-
-/*
-node.npm = ({ versions }) =>
-    <playbook   tag = { `node-${versions.node}` }
-                    from = "buildpack-deps:jessie" >
-        <node.install version = { version } />
-    </playbook>;
-
-node.yarn = ({ versions }) =>
-    <playbook   tag = { `node-${versions.node}-yarn-${versions.yarn}` }
-                from = "buildpack-deps:jessie" >
-        <node.install version = { versions.node } />
-        <run>
-        {[
-            "curl -o- -L https://yarnpkg.com/install.sh",
-            `bash -s -- --version ${versions.yarn}`
-        ].join(" | ")}
-        </run>
-    </playbook>;
-
-node.npm.install.playbook = function ({ version, source })
-{
-    const packageJSON = require(`${source}/package.json`);
-    const dependencies = packageJSON.dependencies || { };
-
-    if (Object.keys(dependencies).length <= 0)
-        return false;
-
-    const name = "ephemeral-dependencies-package";
-    const description = `Just the dependencies.`;
-    const abbreviatedPackage = { name, description, dependencies, private: true };
-    const abbreviatedJSON = JSON.stringify(JSON.stringify(abbreviatedPackage));
-    const hasShrinkwrap = fs.existsSync(`${source}/npm-shrinkwrap.json`);
-
-    return  <playbook from = "buildpack-deps:jessie" tag = "BUILDING-2" >
-                <node.install version = { version }/>
-
-                <run>mkdir app</run>
-                <run>{`echo ${abbreviatedJSON} > app/package.json`}</run>
-
-                {   hasShrinkwrap &&
-                    <copy
-                        source = { `${source}/npm-shrinkwrap.json` }
-                        destination = "app/npm-shrinkwrap.json" />
-                }
-
-                <run>{`cd /app && npm install`}</run>
-            </playbook>;
-}*/
-
-
 
 module.exports = node;
 
@@ -144,24 +82,3 @@ const keys =
     "    gpg --keyserver keyserver.pgp.com --recv-keys \"$key\"; ",
     "  done"
 ].join(" ");
-
-/*
-(async function ()
-{
-    try
-    {
-        const versions = { node: "10.15.3", yarn: "1.16.0" };
-        const source = "/Users/tolmasky/Development/tonic/app/package.json";
-        const persistent = "/Users/tolmasky/Development/cache";
-        const toPromise = require("@cause/cause/to-promise");
-        const entrypoint = <image persistent = { persistent } from = "buildpack-deps:jessie" >
-            <node.install persistent = { persistent } version = "10.15.3" />
-        </image>;
-
-        console.log("--> " + await toPromise(Object, entrypoint()));
-    }
-    catch (e)
-    {
-        console.log(e);
-    }
-})();*/

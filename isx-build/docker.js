@@ -28,7 +28,7 @@ module.exports.image = { };
 module.exports.image.inspect = function inspect(args)
 {
     const options = { rejectOnError: false };
-    const output = δ[spawn]("docker", ["image", "inspect", ...args], options);
+    const output = δ|spawn("docker", ["image", "inspect", ...args], options);
     const OUTPUT = console.log(output);
     if (output.exitCode !== 0)
         return None;

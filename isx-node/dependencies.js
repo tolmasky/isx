@@ -18,32 +18,32 @@ const fail = message => { throw Error(message) };
 module.exports = function dependencies(properties)
 {
     const { source } = properties;
-    const fullPackage = JSON.parse(δ[read](source, "utf-8"));
+    const fullPackage = JSON.parse(δ|read(source, "utf-8"));
     const dependencies = fullPackage.dependencies || { };
 
     if (Object.keys(dependencies).length <= 0)
         return false;
 
     const { lockfile } = properties;
-    const shrinkwrap = δ[read](lockfile, "utf-8");
+    const shrinkwrap = δ|read(lockfile, "utf-8");
     const minimalPackage = toMinimalPackage(dependencies);
     const checksum = getChecksum(object, { minimalPackage, shrinkwrap });
 
     const { persistent, key } = properties;
-    const install = δ[mkdirp](join(persistent, key, "installs", checksum));
+    const install = δ|mkdirp(join(persistent, key, "installs", checksum));
     const tarname = join(install, "node_modules.tar.gz");
 
-    if (δ[exists](tarname))
+    if (δ|exists(tarname))
         return toInstructions(relative(persistent, tarname));
 
-    const minimalPackagePath = δ[write](
+    const minimalPackagePath = δ|write(
         join(install, "minimal-package.json"),
         JSON.stringify(minimalPackage),
         "utf-8");
 
     const { image, children } = properties;
-//    const installerCache = δ[mkdirp](join(persistent, key, "cache"));
-    const created = docker.δ[run](image, sh(
+//    const installerCache = δ|mkdirp(join(persistent, key, "cache"));
+    const created = δ|docker.run(image, sh(
         ...children.map(child =>
             typeof child === "function" ? child("/cache") : child),
         ["tar", "-czf", "node_modules.tar.gz", "node_modules"],

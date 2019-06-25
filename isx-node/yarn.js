@@ -36,17 +36,17 @@ yarn.install = function ({ source, versions, persistent })
             "source field of yarn.install must point to a package.json file.");
 
     const parent = dirname(source);
-    const lockfile = δ[exists](join(parent, "yarn.lock"));
+    const lockfile = δ|exists(join(parent, "yarn.lock"));
 
     if (!lockfile)
         return fail(Error,
             `No lockfile found in ${parent}. yarn.install requires a ` +
             `lockfile to be present.`);
 
-    //const persistent = δ[mkdirp](join(persistent, "yarn", key));
+    //const persistent = δ|mkdirp(join(persistent, "yarn", key));
     const key = join("yarn", toVersionKey(versions));
     const binary = "/root/.yarn/bin/yarn";
-    const image = δ[build](persistent, <yarn { ...{ versions } }/>);
+    const image = δ|build(persistent, <yarn { ...{ versions } }/>);
 
 //                { cache => [binary, "config", "set", "cache-folder", cache] }
     return  <dependencies { ...{ image, source, lockfile, key } } >
@@ -67,7 +67,7 @@ yarn.install = function ({ source, versions, persistent })
         </image>;
         const build = require("../isx-build/image_").build;
 
-        console.log("--> " + await toPromise(Object, build(persistent, entrypoint)));
+        console.log("--> " + await build(persistent, entrypoint));
     }
     catch (e)
     {

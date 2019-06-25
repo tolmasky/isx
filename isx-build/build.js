@@ -16,8 +16,8 @@ const { base, getArguments } = require("generic-jsx");
 
 function build(playbook)
 {
-    const buildContext = δ[BUILD](playbook);
-    const image = BUILD.δ[toDockerImage](
+    const buildContext = δ|BUILD(playbook);
+    const image = δ|BUILD.toDockerImage(
         "/Users/tolmasky/Development/cache",
         buildContext);
 
@@ -35,8 +35,7 @@ module.exports = async function build_({ filename, push, sequential }, propertie
                 result(properties) : result));
         const playbooks = fPlaybooks.map(fPlaybook => Playbook.compile(fPlaybook));
         const playbook = playbooks.get(0);console.log(playbooks);
-        const theBuild = build(playbook);
-        const image = await toPromise(Object, theBuild);
+        const image = await build(playbook);
 
         console.log("---> " + image);
     }
@@ -88,7 +87,7 @@ module.exports.build___ = function build(persistent, element)
     const fromXML = f.fromXML;
 
     if (fromXML)
-        return δ[force](fromXML({ ...args, persistent }));
+        return δ|force(fromXML({ ...args, persistent }));
 
     if (element === false)
         return false;
@@ -97,11 +96,11 @@ module.exports.build___ = function build(persistent, element)
 
     if (ptype === "array")
         return []
-            .concat(...element.δ[map](child => build(persistent, child)))
+            .concat(...δ|element.δ(map)(child => build(persistent, child)))
             .filter(built => built !== false);
 
     if (ptype === "function")
-        return δ[build](persistent, δ[force](element({ persistent })));
+        return δ|build(persistent, δ|force(element({ persistent })));
 
     if (!is(Instruction, element))
         return fail(Error, `Unexpected ${type} when evaluating isx.`);

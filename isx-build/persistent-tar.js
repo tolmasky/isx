@@ -22,19 +22,19 @@ module.exports = function persistentTar(persistent, root, fileSet, dockerfileCon
 
 //    const checksum = getChecksum(OrderedMap(string, string), fileSet);
     const what = console.log("huh?... " + checksum);
-    const tarname = join(δ[mkdirp](join(persistent, "tars")), `${checksum}.tar.gz`);
+    const tarname = join(δ|mkdirp(join(persistent, "tars")), `${checksum}.tar.gz`);
 
     if (sync.exists(tarname))
         return tarname;
 
 
     const a = console.log(tarname);
-    const dockerfile = δ[write](
-        join(δ[mkdirp](join(persistent, "dockerfiles")), checksum),
+    const dockerfile = δ|write(
+        join(δ|mkdirp(join(persistent, "dockerfiles")), checksum),
         dockerfileContents);
     const filenames = List(string)([dockerfile]);
 /*
-    const tmpDirectory = δ[mktmp]();
+    const tmpDirectory = δ|mktmp();
     const filenames = fileSet.data.entrySeq()
         .map(([inTarPath, buffer]) =>
             [inTarPath, join(tmpDirectory, inTarPath), buffer])
@@ -48,7 +48,7 @@ module.exports = function persistentTar(persistent, root, fileSet, dockerfileCon
                     join(persistent, "volumes", image.ptag, "root", filename))))
         .toList();*/
     const stdio = [toReadableStream(filenames.join("\n")), "pipe", "pipe"];
-    const gtar = δ[spawn]("gtar", [
+    const gtar = δ|spawn("gtar", [
         "-czf", tarname,
         "--absolute-names",
         `--transform=s,${dockerfile},/Dockerfile,`,

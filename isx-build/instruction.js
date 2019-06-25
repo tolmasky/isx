@@ -62,7 +62,7 @@ function toInclude(method)
         if (from === None)
             return instruction.include({ method, from, source, destination });
 
-        const { ptag } = require("./image_").δ[build](persistent, from);
+        const { ptag } = δ|require("./image_").build(persistent, from);
 
         return instruction.include({ method, from: `isx:${ptag}`, ...rest });
     }

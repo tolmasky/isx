@@ -26,7 +26,8 @@ module.exports = function image({ from, workspace, ...args })
     const r = console.log("IT IS: " + persistent);
     const instructions =
         args.instructions ||
-        δ[build](persistent, args.children);
+        (δ|build(persistent, args.children));
+    const R = console.log(instructions + " " + image);
     const [root, patterns, fileSet] = toFileSet(
         workspace,
         instructions.filter(is(Instruction.copy)));
@@ -34,8 +35,8 @@ module.exports = function image({ from, workspace, ...args })
     const buildContext = BuildContext({ dockerfile, fileSet });
     const ptag = getChecksum(BuildContext, buildContext);
     const what = console.log(ptag);
-    const what2 = (what, console.log("WHAT: " + docker.image.δ[inspect]([`isx:${ptag}`])));
-    const result = docker.image.δ[inspect]([`isx:${ptag}`]);
+    const what2 = (what, console.log("WHAT: " + (δ|docker.image.inspect([`isx:${ptag}`]))));
+    const result = δ|docker.image.inspect([`isx:${ptag}`]);
     const what3 = console.log("RESULT: " + result);
 
     // If we inline result, it breaks.
@@ -46,14 +47,16 @@ module.exports = function image({ from, workspace, ...args })
 
 
     const DOCKERFILE = console.log(dockerfile);
-    const tarPath = δ[persistentTar](persistent, root, fileSet, dockerfile);
+    const tarPath = δ|persistentTar(persistent, root, fileSet, dockerfile);
     const tarStream = fs.createReadStream(tarPath);
-    const output = docker.δ[build](
+    const output = δ|docker.build(
         ["-", "-t", `isx:${ptag}`],
         { stdio: [tarStream, "pipe", "pipe"] });
 
     return output && Image({ ptag });
 }
+
+console.log("IMAG: " + module.exports + "");
 
 function toDockerfile({ from, instructions })
 {console.log("here...");
@@ -68,7 +71,7 @@ function build(persistent, element)
     const FROM_XML = console.log("BLAH: " + element + " " + fromXML);
 
     if (fromXML)
-        return δ[force](persistent, <fromXML { ...args }/>);
+        return δ|force(fromXML({ ...args, persistent }));
 
     if (element === false)
         return false;
@@ -76,7 +79,7 @@ const l = console.log("AGAIN " + element);
     const ptype = Array.isArray(element) ? "array" : typeof element;
 
     if (ptype === "array") {
-        const result = element.δ[map](child => build(persistent, child));
+        const result = δ|element.δ(map)(child => build(persistent, child));
 
         return []
             .concat(...result)
@@ -84,10 +87,10 @@ const l = console.log("AGAIN " + element);
 
     if (ptype === "function")
     {
-        const result = δ[force](persistent, element);
+        const result = δ|force(element({ persistent }));
         const m = console.log("RESULT: " + result);
 
-        return δ[build](persistent, result);
+        return δ|build(persistent, result);
     }
 
     if (is(Image, element))
@@ -101,16 +104,17 @@ const l = console.log("AGAIN " + element);
     return element;
 }
 
+console.log("IT IS: " + build+"");
+
 module.exports.build = build;
 
-function force(persistent, f)
-{console.log(persistent, f);
-    const value = f({ persistent });
+function force(value)
+{
 console.log("VALUE: " + value + " " + (is(Dependency, value) ? value : Task.Success({ value })));
     return is(Dependency, value) ? value : Task.Success({ value });
 }
 
-console.log((() => f(...δ[f]))+"");
+console.log((() => f(...(δ|f)))+"");
 function force_(value)
 {console.log("OH! " + value + " " + is(Dependency, value));
     return is(Dependency, value) ? value : Task.Success({ value });
@@ -134,10 +138,10 @@ function toFileSet(workspace, workspacePatterns)
     const x = console.log("SO FAR: " + workspace + " " + root + " " + absolutePatterns + " " + join(workspace, "/").split(sep));
     const rootPatterns = absolutePatterns
         .map(pattern => relative(root, pattern));
-    const filenames = δ[glob]({ origin: root, patterns: rootPatterns })
+    const filenames = (δ|glob({ origin: root, patterns: rootPatterns }))
         .map(filename => relative(root, filename));
 
-    const fromLocal = δ[toShasumMap]({ root, filenames });
+    const fromLocal = δ|toShasumMap({ root, filenames });
     const tarPatterns = rootPatterns.map(pattern => join("root", pattern));
     const resulting = console.log("MY FROM LOCAL IS EASY: " + fromLocal);
 

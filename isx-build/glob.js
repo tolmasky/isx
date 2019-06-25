@@ -27,7 +27,7 @@ module.exports = function glob({ origin, patterns })
     const command = local ? find : findInDocker;
     const context = (local ? origin : `isx:${origin.ptag}`);
     const contextNoSlash = context.replace(/\/$/, "");
-    const { stdout } = δ[command](
+    const { stdout } = δ|command(
         contextNoSlash,
         "-type", "f",
         "(",

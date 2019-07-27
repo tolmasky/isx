@@ -1,5 +1,5 @@
 const { None } = require("@algebraic/type/optional");
-const spawn = require("@cause/task/spawn");
+const spawn = require("@parallel-branch/spawn");
 
 
 module.exports.run = function run(image, args, options = { })
@@ -25,13 +25,11 @@ module.exports.build = function build(args, options)
 }
 
 module.exports.image = { };
-module.exports.image.inspect = function inspect(args)
+module.exports.image.inspect = parallel function inspect(args)
 {
-    const options = { rejectOnError: false };
-    const output = δ|spawn("docker", ["image", "inspect", ...args], options);
+    const options = { throwOnExitCode: false };
+    const output = branch spawn("docker", ["image", "inspect", ...args], options);
     const OUTPUT = console.log(output);
-    if (output.exitCode !== 0)
-        return None;
 
-    return output;
+    return output.exitCode === 0 ? output : None;
 }

@@ -20,13 +20,13 @@ const BuildContext = data `BuildContext` (
     fileSet     => OrderedMap(string, string)
 );
 
-module.exports = function image({ from, workspace, ...args })
+module.exports = parallel function image({ from, workspace, ...args })
 {const a = console.log("OK IN HERE ");
     const { persistent } = args;
     const r = console.log("IT IS: " + persistent);
     const instructions =
         args.instructions ||
-        (δ|build(persistent, args.children));
+        (branch build(persistent, args.children));
     const R = console.log(instructions + " " + image);
     const [root, patterns, fileSet] = toFileSet(
         workspace,
@@ -35,8 +35,8 @@ module.exports = function image({ from, workspace, ...args })
     const buildContext = BuildContext({ dockerfile, fileSet });
     const ptag = getChecksum(BuildContext, buildContext);
     const what = console.log(ptag);
-    const what2 = (what, console.log("WHAT: " + (δ|docker.image.inspect([`isx:${ptag}`]))));
-    const result = δ|docker.image.inspect([`isx:${ptag}`]);
+    const what2 = (what, console.log("WHAT: " + (branch docker.image.inspect([`isx:${ptag}`]))));
+    const result = branch docker.image.inspect([`isx:${ptag}`]);
     const what3 = console.log("RESULT: " + result);
 
     // If we inline result, it breaks.
@@ -47,9 +47,9 @@ module.exports = function image({ from, workspace, ...args })
 
 
     const DOCKERFILE = console.log(dockerfile);
-    const tarPath = δ|persistentTar(persistent, root, fileSet, dockerfile);
+    const tarPath = branch persistentTar(persistent, root, fileSet, dockerfile);
     const tarStream = fs.createReadStream(tarPath);
-    const output = δ|docker.build(
+    const output = branch docker.build(
         ["-", "-t", `isx:${ptag}`],
         { stdio: [tarStream, "pipe", "pipe"] });
 
@@ -59,11 +59,11 @@ module.exports = function image({ from, workspace, ...args })
 console.log("IMAG: " + module.exports + "");
 
 function toDockerfile({ from, instructions })
-{console.log("here...");
+{
     return [`from ${from}`, ...instructions.map(Instruction.render)].join("\n");
 }
 
-function build(persistent, element)
+parallel function build(persistent, element)
 {const aa = console.log("AND NOW GOT", persistent, element);
     const args = getArguments(element);
     const f = base(element);
@@ -71,7 +71,7 @@ function build(persistent, element)
     const FROM_XML = console.log("BLAH: " + element + " " + fromXML);
 
     if (fromXML)
-        return δ|force(fromXML({ ...args, persistent }));
+        return branch fromXML({ ...args, persistent });
 
     if (element === false)
         return false;
@@ -79,7 +79,9 @@ const l = console.log("AGAIN " + element);
     const ptype = Array.isArray(element) ? "array" : typeof element;
 
     if (ptype === "array") {
-        const result = δ|element.δ(map)(child => build(persistent, child));
+        const result = element
+            .map(branching (child => build(persistent, child)));
+        const ll = console.log("THE RESULTANT ARRAY: " + result);
 
         return []
             .concat(...result)
@@ -87,10 +89,11 @@ const l = console.log("AGAIN " + element);
 
     if (ptype === "function")
     {
-        const result = δ|force(element({ persistent }));
+//        const r = console.log("ABOUT TO SHOW " + element);
+        const result = branch element({ persistent });
         const m = console.log("RESULT: " + result);
 
-        return δ|build(persistent, result);
+        return branch build(persistent, result);
     }
 
     if (is(Image, element))
@@ -107,18 +110,6 @@ const l = console.log("AGAIN " + element);
 console.log("IT IS: " + build+"");
 
 module.exports.build = build;
-
-function force(value)
-{
-console.log("VALUE: " + value + " " + (is(Dependency, value) ? value : Task.Success({ value })));
-    return is(Dependency, value) ? value : Task.Success({ value });
-}
-
-console.log((() => f(...(δ|f)))+"");
-function force_(value)
-{console.log("OH! " + value + " " + is(Dependency, value));
-    return is(Dependency, value) ? value : Task.Success({ value });
-}
 
 
 function toFileSet(workspace, workspacePatterns)

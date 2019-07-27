@@ -29,24 +29,24 @@ function yarn({ versions })
 
 module.exports = yarn;
 
-yarn.install = function ({ source, versions, persistent })
+yarn.install = parallel function ({ source, versions, persistent })
 {
     if (basename(source) !== "package.json")
         return fail(TypeError,
             "source field of yarn.install must point to a package.json file.");
 
     const parent = dirname(source);
-    const lockfile = δ|exists(join(parent, "yarn.lock"));
+    const lockfile = branch exists(join(parent, "yarn.lock"));
 
     if (!lockfile)
         return fail(Error,
             `No lockfile found in ${parent}. yarn.install requires a ` +
             `lockfile to be present.`);
 
-    //const persistent = δ|mkdirp(join(persistent, "yarn", key));
+    //const persistent = branch mkdirp(join(persistent, "yarn", key));
     const key = join("yarn", toVersionKey(versions));
     const binary = "/root/.yarn/bin/yarn";
-    const image = δ|build(persistent, <yarn { ...{ versions } }/>);
+    const image = branch build(persistent, <yarn { ...{ versions } }/>);
 
 //                { cache => [binary, "config", "set", "cache-folder", cache] }
     return  <dependencies { ...{ image, source, lockfile, key } } >
@@ -61,7 +61,6 @@ yarn.install = function ({ source, versions, persistent })
         const versions = { node: "10.15.3", yarn: "1.16.0" };
         const source = "/Users/tolmasky/Development/tonic/app/package.json";
         const persistent = "/Users/tolmasky/Development/cache";
-        const toPromise = require("@cause/cause/to-promise");
         const entrypoint = <image from = "buildpack-deps:jessie" >
             <yarn.install { ...{ versions, source } } />
         </image>;

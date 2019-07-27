@@ -57,16 +57,16 @@ instruction.copy = toInclude(instruction.include.method.copy);
 
 function toInclude(method)
 {
-    return function ({ from = None, persistent, ...rest })
+    return parallel function ({ from = None, persistent, ...rest })
     {
         if (from === None)
             return instruction.include({ method, from, source, destination });
 
-        const { ptag } = δ|require("./image_").build(persistent, from);
+        const { ptag } = branch require("./image_").build(persistent, from);
 
         return instruction.include({ method, from: `isx:${ptag}`, ...rest });
     }
-}
+};
 
 instruction.include.render = ({ method, from, source, destination }) =>
 [

@@ -1,6 +1,6 @@
 const { is, string } = require("@algebraic/type");
 const { OrderedSet } = require("@algebraic/collections");
-const spawn = require("@cause/task/spawn");
+const spawn = require("@parallel-branch/spawn");
 const { join } = require("@cause/task/fs");
 
 const sync = (fs =>
@@ -11,7 +11,7 @@ const find = (...args) => spawn("find", args);
 const findInDocker = (tag, ...args) =>
     spawn("docker", ["run", "--rm", tag, "find", "/", ...args]);
 
-module.exports = function glob({ origin, patterns })
+module.exports = parallel function glob({ origin, patterns })
 {
     const rr = console.log("ABOUT TO GLOB OVER: " + origin + " " + patterns);
     const local = is(string, origin);
@@ -27,7 +27,7 @@ module.exports = function glob({ origin, patterns })
     const command = local ? find : findInDocker;
     const context = (local ? origin : `isx:${origin.ptag}`);
     const contextNoSlash = context.replace(/\/$/, "");
-    const { stdout } = δ|command(
+    const { stdout } = branch command(
         contextNoSlash,
         "-type", "f",
         "(",

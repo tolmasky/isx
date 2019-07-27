@@ -24,6 +24,7 @@ module.exports = getChecksum;
 function getDataChecksum(type, value)
 {
     const fields = data.fields(type)
+        .map(field => [field.name, parameterized.parameters(field)[0]])
         .map(([name, type]) => getChecksum(type, value[name]));
 
     return `data-${getSha512({ fields })}`;

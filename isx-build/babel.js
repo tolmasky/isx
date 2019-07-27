@@ -1,3 +1,4 @@
+console.log(require.resolve("@babel/template"));
 const { dirname, sep } = require("path");
 const getPackageDescriptions = require("magic-ws/get-package-descriptions");
 const genericJSXPath = dirname(require.resolve("generic-jsx"));
@@ -8,7 +9,7 @@ Error.stackTraceLimit = 1000;
 require("@babel/register")
 ({
     ignore:[new RegExp(`^.*${sep}node_modules${sep}.*`, "i")],
-    plugins:[require("@generic-jsx/babel-plugin"), require("@cause/task/transform/babel-plugin")],
+    plugins:[require("@parallel-branch/babel-plugin"), require("@generic-jsx/babel-plugin")],
     cache: false
 });
 

@@ -12,7 +12,7 @@ const mktmp = () => mkdirp(join("/tmp", "isx", uuid.v4()));
 const sync = (fs =>
     ({ exists: fs.existsSync, write: fs.writeFileSync }))
     (require("fs"));
-const { join, mkdirp, write } = require("@cause/task/fs");
+const { join, mkdirp, write } = require("@parallel-branch/fs");
 
 
 module.exports = parallel function persistentTar(persistent, root, fileSet, dockerfileContents)

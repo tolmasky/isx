@@ -4,8 +4,6 @@ const { base, getArguments } = require("generic-jsx");
 const { hasOwnProperty } = Object;
 const has = (key, object) => hasOwnProperty.call(object, key);
 
-const getPlaybook = () => require("./playbook");
-
 
 const instruction = union `instruction` (
 

@@ -9,7 +9,7 @@ const fs = require("fs");
 const { include } = require("./instruction");
 const glob = require("./glob");
 
-const { join, write, mkdirp } = require("@cause/task/fs");
+const { join, write, mkdirp } = require("@parallel-branch/fs");
 const { sep, resolve, relative } = require("path");
 const common = (lhs, rhs) =>
     (index => index === -1 ? lhs : lhs.slice(0, index))

@@ -1,7 +1,7 @@
 const { is, string } = require("@algebraic/type");
 const { OrderedSet } = require("@algebraic/collections");
 const spawn = require("@parallel-branch/spawn");
-const { join } = require("@cause/task/fs");
+const { join } = require("@parallel-branch/fs");
 
 const sync = (fs =>
     ({ exists: fs.existsSync, write: fs.writeFileSync, read: fs.readFileSync }))

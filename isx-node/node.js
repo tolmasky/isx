@@ -3,7 +3,7 @@ const { copy, run } = require("@isx/build/instruction");
 
 const tarname = version => `node-v${version}-linux-x64.tar.xz`;
 const fs = require("fs");
-const { join } = require("@cause/task/fs");
+const { join } = require("@parallel-branch/fs");
 const required = (name, f) =>
     { throw TypeError(`${name} is required when calling ${f}`) }
 const rversion = tag => required("version", `<node.${tag}/>`);

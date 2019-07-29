@@ -1,4 +1,3 @@
-console.log(require.resolve("@babel/template"));
 const { dirname, sep } = require("path");
 const getPackageDescriptions = require("magic-ws/get-package-descriptions");
 const genericJSXPath = dirname(require.resolve("generic-jsx"));

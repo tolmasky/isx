@@ -5,7 +5,7 @@ const common = (lhs, rhs) =>
     (lhs.findIndex((component, index) => component !== rhs[index]));
 const glob = require("./glob");
 const { base, getArguments } = require("generic-jsx");
-const { is, data, string } = require("@algebraic/type");
+const { is, data, string, any } = require("@algebraic/type");
 const { None } = require("@algebraic/type/optional");
 const { List, OrderedMap, OrderedSet } = require("@algebraic/collections");
 const { Dependency } = require("@cause/task/dependent");
@@ -19,7 +19,8 @@ const { join } = require("@parallel-branch/fs");
 
 
 const Image = data `Image` (
-    ptag    => string );
+    ptag    => string,
+    forTags => any );
 
 const BuildContext = data `BuildContext` (
     dockerfile  => string,
@@ -31,7 +32,7 @@ const isLocalInclude = instruction =>
     instruction.from === None;
 
 module.exports = parallel function image({ from, workspace, ...args })
-{
+{console.log("OK GOING TO START BUILDING " + args.tag);
     const { persistent } = args;
     const instructions =
         args.instructions ||
@@ -43,6 +44,9 @@ module.exports = parallel function image({ from, workspace, ...args })
             .filter(isLocalInclude)
             .map(include => include.source));
     const dockerfile = branch toDockerfile({ persistent, from, instructions });
+    
+    ((args.tags+"").indexOf("local") >= 0) && console.log(dockerfile);
+    
     const buildContext = BuildContext({ dockerfile, fileSet });
     const ptag = getChecksum(BuildContext, buildContext);
     const result = branch docker.image.inspect([`isx:${ptag}`]);
@@ -57,25 +61,22 @@ module.exports = parallel function image({ from, workspace, ...args })
         ["-", "-t", `isx:${ptag}`],
         { stdio: [tarStream, "pipe", "pipe"] });
 
-    return output && Image({ ptag });
+    return output && Image({ ptag, forTags: args.tag });
 }
 
 parallel function toDockerfile({ from, instructions, persistent })
 {
-    const fromTag = is (Image, from) ?
-        (branch build(persistent, from)).ptag :
-        from;
-    const lines =
-    [
-        `from ${fromTag}`,
-        ...instructions.map(Instruction.render)
-    ];
+    const fromTag =
+        typeof from === "function" ?
+            `isx:${(branch build(persistent, from)).ptag}` :
+            from;
 
-    return lines.join("\n");
+    return [`from ${fromTag}`,
+        ...instructions.map(Instruction.render)].join("\n");
 }
 
 parallel function build(persistent, element)
-{
+{console.log("GOING TO TRY TO GET ARGUMENTS FROM: ", element);
     const args = getArguments(element);
     const f = base(element);
     const fromXML = f.fromXML;

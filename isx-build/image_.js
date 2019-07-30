@@ -16,6 +16,7 @@ const docker = require("./docker");
 const Task = require("@cause/task");
 const persistentTar = require("./persistent-tar");
 const { join } = require("@parallel-branch/fs");
+const { isArray } = Array;
 
 
 const Image = data `Image` (
@@ -60,8 +61,15 @@ module.exports = parallel function image({ from, workspace, ...args })
     const output = branch docker.build(
         ["-", "-t", `isx:${ptag}`],
         { stdio: [tarStream, "pipe", "pipe"] });
+    const tags =
+    [
+        ...(typeof args.tag === "string" ? [args.tag] : []),
+        ...(isArray(args.tag) ? args.tag : [])
+    ];
+    const tagged = output && tags.map(
+        branching (target => docker.tag({ source: `isx:${ptag}`, target })));
 
-    return output && Image({ ptag, forTags: args.tag });
+    return tagged && Image({ ptag, forTags: args.tag });
 }
 
 parallel function toDockerfile({ from, instructions, persistent })

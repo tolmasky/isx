@@ -19,6 +19,11 @@ module.exports.run = function run(image, args, options = { })
     ], spawnOptions);
 }
 
+module.exports.tag = function tag({ source, target }, options)
+{
+    return spawn("docker", ["tag", source, target], options);
+}
+
 module.exports.build = function build(args, options)
 {
     return spawn("docker", ["build", ...args], options);

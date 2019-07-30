@@ -1,3 +1,7 @@
+const fail = require("@algebraic/type/fail");
+const { is, data, string, any } = require("@algebraic/type");
+const { List, OrderedMap } = require("@algebraic/collections");
+
 const fs = require("fs");
 const { sep, relative } = require("path");
 const common = (lhs, rhs) =>
@@ -5,15 +9,12 @@ const common = (lhs, rhs) =>
     (lhs.findIndex((component, index) => component !== rhs[index]));
 const glob = require("./glob");
 const { base, getArguments } = require("generic-jsx");
-const { is, data, string, any } = require("@algebraic/type");
+
 const { None } = require("@algebraic/type/optional");
-const { List, OrderedMap, OrderedSet } = require("@algebraic/collections");
-const { Dependency } = require("@cause/task/dependent");
+
 const Instruction = require("./instruction");
 const getChecksum = require("./get-checksum");
-const fail = (type, message) => { throw type(message); }
 const docker = require("./docker");
-const Task = require("@cause/task");
 const persistentTar = require("./persistent-tar");
 const { join } = require("@parallel-branch/fs");
 const { isArray } = Array;
@@ -33,7 +34,7 @@ const isLocalInclude = instruction =>
     instruction.from === None;
 
 module.exports = parallel function image({ from, workspace, ...args })
-{console.log("OK GOING TO START BUILDING " + args.tag);
+{
     const { persistent } = args;
     const instructions =
         args.instructions ||
@@ -84,7 +85,10 @@ parallel function toDockerfile({ from, instructions, persistent })
 }
 
 parallel function build(persistent, element)
-{console.log("GOING TO TRY TO GET ARGUMENTS FROM: ", element);
+{
+    if (!element)
+        return false;
+
     const args = getArguments(element);
     const f = base(element);
     const fromXML = f.fromXML;
@@ -92,22 +96,17 @@ parallel function build(persistent, element)
     if (fromXML)
         return branch fromXML({ ...args, persistent });
 
-    if (element === false)
-        return false;
-
     const ptype = Array.isArray(element) ? "array" : typeof element;
 
     if (ptype === "array")
         return []
             .concat(...element
             .map(branching (child => build(persistent, child))))
-            .filter(built => built !== false);
+            .filter(built => !!built);
 
     if (ptype === "function")
-    {
-        console.log("THE ARGS: " + Object.keys(args));
         return branch build(persistent, branch element({ persistent }));
-}
+
     if (is(Image, element))
         return element;
 

@@ -1,0 +1,2 @@
+docker images -a | grep "isx:*" | awk '{print "isx:"$2}' | xargs docker rmi
+docker system prune

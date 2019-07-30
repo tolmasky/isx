@@ -1,3 +1,4 @@
+const { createReadStream } = require("fs");
 const { dirname } = require("path");
 const { data, string, of } = require("@algebraic/type");
 const { None } = require("@algebraic/type/optional");
@@ -15,7 +16,7 @@ const sync = (fs =>
 const { join, mkdirp, write } = require("@parallel-branch/fs");
 
 
-module.exports = parallel function persistentTar(persistent, root, fileSet, dockerfileContents)
+parallel function persistentTar(persistent, root, fileSet, dockerfileContents)
 {const r = console.log("IN HERE: " + persistent + " " + root + " " + fileSet + dockerfileContents);
     // FIXME: CHECKSUM WITH DOCKERFILE!
     const checksum = getChecksum(string, dockerfileContents);
@@ -65,6 +66,13 @@ console.log("THE TARNAME: " + tarname, fileSet);
         { stdio });
 
     return (gtar, tarname);
+}
+
+module.exports = persistentTar;
+
+module.exports.stream = parallel function (persistent, root, fileSet, dockerfileContents)
+{
+    return createReadStream(branch persistentTar(persistent, root, fileSet, dockerfileContents));
 }
 
 function toReadableStream(string)

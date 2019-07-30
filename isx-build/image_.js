@@ -15,7 +15,7 @@ const { None } = require("@algebraic/type/optional");
 const Instruction = require("./instruction");
 const getChecksum = require("./get-checksum");
 const docker = require("./docker");
-const persistentTar = require("./persistent-tar");
+const tar = require("./persistent-tar");
 const { join } = require("@parallel-branch/fs");
 const { isArray } = Array;
 
@@ -57,8 +57,7 @@ module.exports = parallel function image({ from, workspace, ...args })
     if (result !== None)
         return Image({ ptag });
 
-    const tarPath = branch persistentTar(persistent, root, fileSet, dockerfile);
-    const tarStream = fs.createReadStream(tarPath);
+    const tarStream = branch tar.stream(persistent, root, fileSet, dockerfile);
     const output = branch docker.build(
         ["-", "-t", `isx:${ptag}`],
         { stdio: [tarStream, "pipe", "pipe"] });

@@ -1,5 +1,6 @@
 const { basename, relative } = require("path");
 const { object } = require("@algebraic/type");
+const fail = require("@algebraic/type/fail");
 
 const node = require("@isx/node/node");
 const build = require("@isx/build/image_").build;
@@ -12,7 +13,6 @@ const docker = require("@isx/build/docker");
 const sh = (...commands) =>
     ["/bin/sh", "-c", commands
         .map(command => command.join(" ")).join(" && ")];
-const fail = message => { throw Error(message) };
 
 
 module.exports = parallel function dependencies(properties)

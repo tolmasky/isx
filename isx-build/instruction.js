@@ -1,8 +1,5 @@
 const { data, union, string, type } = require("@algebraic/type");
 const { Optional, None } = require("@algebraic/type/optional");
-const { base, getArguments } = require("generic-jsx");
-const { hasOwnProperty } = Object;
-const has = (key, object) => hasOwnProperty.call(object, key);
 const { join } = require("path");
 
 

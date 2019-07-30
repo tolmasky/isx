@@ -18,11 +18,10 @@ module.exports.install = parallel function ({ source, versions, persistent })
             "source field of npm.install must point to a package.json file.");
 
     const parent = dirname(source);
-console.log("GOT PARNET: " + parent);
     const lockfile =
         branch exists(join(parent, "npm-shrinkwrap.json")) ||
         branch exists(join(parent, "package-lock.json"));
-console.log("THIS FAR " + lockfile);
+
     if (!lockfile)
         return fail(
             `No lockfile found in ${parent}. npm.install requires a ` +

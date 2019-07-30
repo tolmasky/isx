@@ -58,7 +58,7 @@ function toInclude(method)
     return parallel function ({ from = None, persistent, ...rest })
     {
         if (from === None)
-            return instruction.include({ method, from, source, destination });
+            return instruction.include({ method, from, ...rest });
 
         const { ptag } = branch require("./image_").build(persistent, from);
 

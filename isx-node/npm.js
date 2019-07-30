@@ -30,7 +30,7 @@ console.log("THIS FAR " + lockfile);
 
     //const persistent = branch mkdirp(join(persistent, "yarn", key));
     const key = "npm";
-    const image = branch build(persistent, <node.base version = { versions.node }/>);
+    const image = branch build(persistent, <node version = { versions.node }/>);
     const binary = "npm";
 
 //                { cache => [binary, "config", "set", "cache-folder", cache] }

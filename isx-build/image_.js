@@ -42,7 +42,7 @@ module.exports = parallel function image({ from, workspace, ...args })
         instructions
             .filter(isLocalInclude)
             .map(include => include.source));
-    const dockerfile = toDockerfile({ from, instructions });
+    const dockerfile = branch toDockerfile({ persistent, from, instructions });
     const buildContext = BuildContext({ dockerfile, fileSet });
     const ptag = getChecksum(BuildContext, buildContext);
     const result = branch docker.image.inspect([`isx:${ptag}`]);
@@ -60,9 +60,18 @@ module.exports = parallel function image({ from, workspace, ...args })
     return output && Image({ ptag });
 }
 
-function toDockerfile({ from, instructions })
+parallel function toDockerfile({ from, instructions, persistent })
 {
-    return [`from ${from}`, ...instructions.map(Instruction.render)].join("\n");
+    const fromTag = is (Image, from) ?
+        (branch build(persistent, from)).ptag :
+        from;
+    const lines =
+    [
+        `from ${fromTag}`,
+        ...instructions.map(Instruction.render)
+    ];
+
+    return lines.join("\n");
 }
 
 parallel function build(persistent, element)

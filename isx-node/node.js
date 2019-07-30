@@ -9,51 +9,50 @@ const required = (name, f) =>
 const rversion = tag => required("version", `<node.${tag}/>`);
 
 
-const node =
+function node({ version })
 {
-    keys: () => <run>{keys}</run>,
-
-    tar ({ version })
-    {
-        const filename = tarname(version);
-        const shasum = "SHASUMS256.txt";
-        const versionURL = `https://nodejs.org/dist/v${version}`;
-
-        return  <image tag = { `isx:node-${version}-tar` }
-                       from = "buildpack-deps:jessie" >
-                    <node.keys/>
-                    <run>
-                        {[
-                            `curl -SLO "${versionURL}/${filename}"`,
-                            `curl -SLO "${versionURL}/${shasum}.asc"`,
-                            `gpg --batch --decrypt --output ${shasum} ${shasum}.asc`,
-                            `grep " ${filename}\\$" ${shasum} | sha256sum -c -`
-                        ].join(" && ")}
-                    </run>
-                </image>;
-    },
-
-    base: ({ version }) =>
-        <image  tag = { `isx:node-${version}` }
-                from = "buildpack-deps:jessie" >
-            <node.install version = { version } />
-        </image>,
-
-    install: ({ version = rversion("install"), destination = "/usr/local" }) =>
-    [
-        <copy   from = { <node.tar version = { version } /> }
-                source = { tarname(version) }
-                destination = "/" />,
-        <run>
-        {[
-            `tar -xJf "/${tarname(version)}" -C ${destination} --strip-components=1`,
-            `rm "/${tarname(version)}"`
-        ].join(" && ")}
-        </run>
-    ]
-};
+    return  <image  tag = { `isx:node-${version}` }
+                    from = "buildpack-deps:jessie" >
+                <node.install version = { version } />
+            </image>;
+}
 
 module.exports = node;
+
+node.keys = () => <run>{keys}</run>,
+
+node.tar = function nodetar({ version })
+{
+    const filename = tarname(version);
+    const shasum = "SHASUMS256.txt";
+    const versionURL = `https://nodejs.org/dist/v${version}`;
+
+    return  <image tag = { `isx:node-${version}-tar` }
+                   from = "buildpack-deps:jessie" >
+                <node.keys/>
+                <run>
+                    {[
+                        `curl -SLO "${versionURL}/${filename}"`,
+                        `curl -SLO "${versionURL}/${shasum}.asc"`,
+                        `gpg --batch --decrypt --output ${shasum} ${shasum}.asc`,
+                        `grep " ${filename}\\$" ${shasum} | sha256sum -c -`
+                    ].join(" && ")}
+                </run>
+            </image>;
+};
+
+node.install = ({ version = rversion("install"), destination = "/usr/local" }) =>
+[
+    <copy   from = { <node.tar version = { version } /> }
+            source = { tarname(version) }
+            destination = "/" />,
+    <run>
+    {[
+        `tar -xJf "/${tarname(version)}" -C ${destination} --strip-components=1`,
+        `rm "/${tarname(version)}"`
+    ].join(" && ")}
+    </run>
+];
 
 const keys =
 [

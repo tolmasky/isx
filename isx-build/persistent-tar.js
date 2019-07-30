@@ -21,18 +21,23 @@ module.exports = parallel function persistentTar(persistent, root, fileSet, dock
     const checksum = getChecksum(string, dockerfileContents);
 
 //    const checksum = getChecksum(OrderedMap(string, string), fileSet);
-    const what = console.log("huh?... " + checksum);
-    const tarname = join(branch mkdirp(join(persistent, "tars")), `${checksum}.tar.gz`);
-
+    const tarname = join(
+        branch mkdirp(join(persistent, "tars")),
+        `${checksum}.tar.gz`);
+console.log("THE TARNAME: " + tarname, fileSet);
     if (sync.exists(tarname))
         return tarname;
 
-    const a = console.log(tarname);
     const dockerfile = branch write(
         join(branch mkdirp(join(persistent, "dockerfiles")), checksum),
         dockerfileContents);
-    const RESULT = console.log("--" + dockerfile);
-    const filenames = List(string)([dockerfile]);
+
+    const filenames = fileSet
+        .keySeq()
+        .map(filename => join(root, filename))
+        .toList()
+        .push(dockerfile);
+
 /*
     const tmpDirectory = branch mktmp();
     const filenames = fileSet.data.entrySeq()
@@ -61,7 +66,6 @@ module.exports = parallel function persistentTar(persistent, root, fileSet, dock
 
     return (gtar, tarname);
 }
-console.log(module.exports+"");
 
 function toReadableStream(string)
 {

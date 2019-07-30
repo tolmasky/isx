@@ -1,4 +1,9 @@
 const fs = require("fs");
+const { sep, relative } = require("path");
+const common = (lhs, rhs) =>
+    (index => index === -1 ? lhs : lhs.slice(0, index))
+    (lhs.findIndex((component, index) => component !== rhs[index]));
+const glob = require("./glob");
 const { base, getArguments } = require("generic-jsx");
 const { is, data, string } = require("@algebraic/type");
 const { None } = require("@algebraic/type/optional");
@@ -10,6 +15,7 @@ const fail = (type, message) => { throw type(message); }
 const docker = require("./docker");
 const Task = require("@cause/task");
 const persistentTar = require("./persistent-tar");
+const { join } = require("@parallel-branch/fs");
 
 
 const Image = data `Image` (
@@ -20,33 +26,31 @@ const BuildContext = data `BuildContext` (
     fileSet     => OrderedMap(string, string)
 );
 
+const isLocalInclude = instruction =>
+    is (Instruction.include, instruction) &&
+    instruction.from === None;
+
 module.exports = parallel function image({ from, workspace, ...args })
-{const a = console.log("OK IN HERE ");
+{
     const { persistent } = args;
-    const r = console.log("IT IS: " + persistent);
     const instructions =
         args.instructions ||
         (branch build(persistent, args.children));
-    const R = console.log(instructions + " " + image);
-    const [root, patterns, fileSet] = toFileSet(
+
+    const [root, patterns, fileSet] = branch toFileSet(
         workspace,
-        instructions.filter(is(Instruction.copy)));
+        instructions
+            .filter(isLocalInclude)
+            .map(include => include.source));
     const dockerfile = toDockerfile({ from, instructions });
     const buildContext = BuildContext({ dockerfile, fileSet });
     const ptag = getChecksum(BuildContext, buildContext);
-    const what = console.log(ptag);
-    const what2 = (what, console.log("WHAT: " + (branch docker.image.inspect([`isx:${ptag}`]))));
     const result = branch docker.image.inspect([`isx:${ptag}`]);
-    const what3 = console.log("RESULT: " + result);
 
     // If we inline result, it breaks.
-    if (result !== None) {
-        const oth = console.log("OR AM I  IN HERE?");
+    if (result !== None)
         return Image({ ptag });
-}
 
-
-    const DOCKERFILE = console.log(dockerfile);
     const tarPath = branch persistentTar(persistent, root, fileSet, dockerfile);
     const tarStream = fs.createReadStream(tarPath);
     const output = branch docker.build(
@@ -56,71 +60,57 @@ module.exports = parallel function image({ from, workspace, ...args })
     return output && Image({ ptag });
 }
 
-console.log("IMAG: " + module.exports + "");
-
 function toDockerfile({ from, instructions })
 {
     return [`from ${from}`, ...instructions.map(Instruction.render)].join("\n");
 }
 
 parallel function build(persistent, element)
-{const aa = console.log("AND NOW GOT", persistent, element);
+{
     const args = getArguments(element);
     const f = base(element);
     const fromXML = f.fromXML;
-    const FROM_XML = console.log("BLAH: " + element + " " + fromXML);
 
     if (fromXML)
         return branch fromXML({ ...args, persistent });
 
     if (element === false)
         return false;
-const l = console.log("AGAIN " + element);
+
     const ptype = Array.isArray(element) ? "array" : typeof element;
 
-    if (ptype === "array") {
-        const result = element
-            .map(branching (child => build(persistent, child)));
-        const ll = console.log("THE RESULTANT ARRAY: " + result);
-
+    if (ptype === "array")
         return []
-            .concat(...result)
-            .filter(built => built !== false); }
+            .concat(...element
+            .map(branching (child => build(persistent, child))))
+            .filter(built => built !== false);
 
     if (ptype === "function")
     {
-//        const r = console.log("ABOUT TO SHOW " + element);
-        const result = branch element({ persistent });
-        const m = console.log("RESULT: " + result);
-
-        return branch build(persistent, result);
-    }
-
+        console.log("THE ARGS: " + Object.keys(args));
+        return branch build(persistent, branch element({ persistent }));
+}
     if (is(Image, element))
         return element;
 
     if (!is(Instruction, element))
-    {
-        const r = console.log(element);
         return fail(Error, `Unexpected ${ptype} when evaluating isx.`);
-    }
+
     return element;
 }
-
-console.log("IT IS: " + build+"");
 
 module.exports.build = build;
 
 
-function toFileSet(workspace, workspacePatterns)
-{
-    //if (workspacePatterns.size <= 0)
+parallel function toFileSet(workspace, workspacePatterns)
+{console.log("PATTERNS: " + workspace + " " + workspacePatterns);
+    if (workspacePatterns.length <= 0)
         return [None, List(string)(), OrderedMap(string, string)()];
-/*
+console.log("here...");
     // We are calculating the root from the source PATTERNS instead of the
     // resultant files. This is only OK if we don't allow .. to follow **.
     const absolutePatterns = workspacePatterns
-        .map(pattern => resolve(workspace, pattern));
+        .map(pattern => join(workspace, pattern));console.log(absolutePatterns);
     const root = absolutePatterns
         .reduce((root, pattern) =>
             common(root, pattern.split(sep)),
@@ -129,14 +119,40 @@ function toFileSet(workspace, workspacePatterns)
     const x = console.log("SO FAR: " + workspace + " " + root + " " + absolutePatterns + " " + join(workspace, "/").split(sep));
     const rootPatterns = absolutePatterns
         .map(pattern => relative(root, pattern));
-    const filenames = (δ|glob({ origin: root, patterns: rootPatterns }))
+    const filenames = (branch glob({ origin: root, patterns: rootPatterns }))
         .map(filename => relative(root, filename));
 
-    const fromLocal = δ|toShasumMap({ root, filenames });
+    const fromLocal = branch toShasumMap({ root, filenames });
     const tarPatterns = rootPatterns.map(pattern => join("root", pattern));
     const resulting = console.log("MY FROM LOCAL IS EASY: " + fromLocal);
 
-    return [root, tarPatterns, fromLocal];*/
+    return [root, tarPatterns, fromLocal];
 }
 
+const toShasumMap = (function ()
+{
+    const { string } = require("@algebraic/type");
+    const { OrderedMap } = require("@algebraic/collections");
+    const spawn = require("@parallel-branch/spawn");
+    const command = (binary, prefix) =>
+        parallel((args, options = { }) =>
+            branch spawn(binary, [...prefix, ...args], options));
+    const darwin = require("os").platform() === "darwin";
+    const shasum = command(...(darwin ?
+        ["shasum", ["-a", "256"]] : ["sha256sum"]));
+    const ShasumRegExp = /([a-z0-9]{64})\s{2}([^\n]+)\n/g;
+
+    return parallel function shasums({ root, filenames })
+    {
+        if (filenames.size === 0)
+            return OrderedMap(string, string)();
+
+        const { stdout } = branch shasum(filenames, { cwd: root });
+        const [...matches] = stdout.matchAll(ShasumRegExp);
+        const entries = matches
+            .map(([, checksum, filename]) => [filename, checksum]);
+
+        return OrderedMap(string, string)(entries);
+    }
+})();
 

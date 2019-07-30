@@ -3,6 +3,7 @@ const { Optional, None } = require("@algebraic/type/optional");
 const { base, getArguments } = require("generic-jsx");
 const { hasOwnProperty } = Object;
 const has = (key, object) => hasOwnProperty.call(object, key);
+const { join } = require("path");
 
 
 const instruction = union `instruction` (
@@ -70,7 +71,7 @@ instruction.include.render = ({ method, from, source, destination }) =>
 [
     method === instruction.include.method.add ? "ADD" : "COPY",
     ...(from === None ? [] : [`--from=${from}`]),
-    source,
+    ...(from === None ? [join("root", source)] : [source]),
     destination
 ].join(" ");
 

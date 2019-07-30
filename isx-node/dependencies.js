@@ -2,7 +2,7 @@ const { basename, relative } = require("path");
 const { object } = require("@algebraic/type");
 
 const node = require("@isx/node/node");
-const build = require("@isx/build/build").build_;
+const build = require("@isx/build/image_").build;
 
 const { join, mkdirp, write, read, exists } = require("@parallel-branch/fs");
 const { run } = require("@isx/build/instruction");

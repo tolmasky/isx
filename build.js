@@ -32,7 +32,7 @@ module.exports = async function build({ filename, push, sequential }, properties
         const steps =
         [
             `printf "${includes}"`,
-            `tar -cv --files-from - `,
+            `tar -c --files-from - `,
             toBuildCommand(image, DockerfilePath)
         ].join(" | ")
 

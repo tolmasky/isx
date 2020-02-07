@@ -11,6 +11,8 @@ const functions =
 
     expose: ({ children:[port] }) => `EXPOSE ${port}`,
 
+    healthcheck: ({ children:[healthcheck] }) => `HEALTHCHECK ${healthcheck}`,
+
     label: ({ children:[label] }) => `LABEL ${children}`,
 
     run: ({ PATH, children:[command] }) =>

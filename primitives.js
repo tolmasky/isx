@@ -13,7 +13,7 @@ const functions =
 
     healthcheck: ({ children:[healthcheck] }) => `HEALTHCHECK ${healthcheck}`,
 
-    label: ({ children:[label] }) => `LABEL ${children}`,
+    label: ({ children:[label] }) => `LABEL ${label}`,
 
     run: ({ PATH, children:[command] }) =>
         `RUN ${ PATH !== void(0) ? `PATH=${PATH} && ${command}` : command }`,

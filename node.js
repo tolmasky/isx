@@ -33,6 +33,9 @@ const keys =
     "    B9AE9905FFD7803F25714661B63B535A4C206CA9 ", // Evan Lucas <evanlucas@me.com>, former member of Node release team
     "    77984A986EBC2AA786BC0F66B01FBB92821C587A ", // Gibson Fahnestock <gibfahn@gmail.com>, former member of Node release team
     "    FD3A5288F042B6850C66B31F09FE44734EB7990E ", // Jeremiah Senkpiel <fishrock@keybase.io>, former member of Node release team
+    "    93C7E9E91B49E432C2F75674B0A78B0A6C481CF6 ", // Isaac Z. Schlueter <i@izs.me>, former member of Node release team
+    "    114F43EE0176B71C7BC219DD50A3051F888C628D ", // Julien Gilli <jgilli@fastmail.fm>, former member of Node release team
+    "    7937DFD2AB06298B2293C3187D33FF9D0246406D ", // Timothy J Fontaine <tjfontaine@gmail.com>, former member of Node release team
     "    4ED778F539E3634C779C87C6D7062848A1AB005C ", // Beth Griggs <bethany.griggs@uk.ibm.com>, Node release team
     "    94AE36675C464D64BAFA68DD7434390BDBE9B9C5 ", // Colin Ihrig <cjihrig@gmail.com>, Node release team
     "    71DCFD284A79C3B38668286BC97EC7A07EDE3FC1 ", // James M Snell <jasnell@keybase.io>, Node release team

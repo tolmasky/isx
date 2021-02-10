@@ -46,7 +46,8 @@ const keys =
     "    B9E2F5981AA6E0CD28160D9FF13993A75599653C ", // Shelley Vohr <shelley.vohr@gmail.com>, Node release team
     "    C82FA3AE1CBEDC6BE46B9360C43CEC45C17AB93C ", // Richard Lau <riclau@uk.ibm.com>, Node release team
     "    108F52B48DB57BB0CC439B2997B01419BD92F80A ", // Ruy Adorno <ruyadorno@hotmail.com>, Node release team
-    "    1C050899334244A8AF75E53792EF661D867B9DFA ", // Danielle Adams <adamzdanielle@gmail.com>, Node release team
+    "    1C050899334244A8AF75E53792EF661D867B9DFA ", // Danielle Adams <adamzdanielle@gmail.com>, Node release team, prior to 01/09/21
+    "    74F12602B6F1C4E913FAA37AD3A89613643B6201 ", // Danielle Adams <adamzdanielle@gmail.com>, Node release team
     "  ; do ",
     "    gpg --keyserver na.pool.sks-keyservers.net --recv-keys \"$key\" || ",
     "    gpg --keyserver pool.sks-keyservers.net --recv-keys \"$key\" || ",

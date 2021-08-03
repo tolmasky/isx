@@ -7,6 +7,8 @@ const functions =
 
     copy: ({ source, destination }) => `COPY ${source} ${destination}`,
 
+    entrypoint: ({ children: [entrypoint] }) => `ENTRYPOINT ${entrypoint}`,
+
     env: ({ key, value }) => `ENV ${key}=${JSON.stringify(value)}`,
 
     expose: ({ children:[port] }) => `EXPOSE ${port}`,

@@ -1,11 +1,8 @@
 const node =
 {
-    keys: ({ state: value }) => !value &&
-        <state value = { true }>
-            <run>{keys}</run>
-        </state>,
+    keys: () => <run>{keys}</run>,
 
-    install: ({ version = "10.15.0", destination, state }) =>
+    install: ({ version = "10.15.0", destination }) =>
     [
         <node.keys/>,
         <run>
@@ -23,6 +20,18 @@ const node =
 
 module.exports = node;
 
+const keyservers =
+[
+    "hkps://keys.openpgp.org",
+    "keyserver.ubuntu.com",
+    "na.pool.sks-keyservers.net",
+    "ha.pool.sks-keyservers.net",
+    "pgp.mit.edu",
+    "hkp://p80.pool.sks-keyservers.net:80",
+    "hkp://keyserver.ubuntu.com:80",
+    "keyserver.pgp.com"
+];
+
 const keys =
 [
     "set -ex ",
@@ -36,24 +45,24 @@ const keys =
     "    93C7E9E91B49E432C2F75674B0A78B0A6C481CF6 ", // Isaac Z. Schlueter <i@izs.me>, former member of Node release team
     "    114F43EE0176B71C7BC219DD50A3051F888C628D ", // Julien Gilli <jgilli@fastmail.fm>, former member of Node release team
     "    7937DFD2AB06298B2293C3187D33FF9D0246406D ", // Timothy J Fontaine <tjfontaine@gmail.com>, former member of Node release team
-    "    4ED778F539E3634C779C87C6D7062848A1AB005C ", // Beth Griggs <bethany.griggs@uk.ibm.com>, Node release team
-    "    94AE36675C464D64BAFA68DD7434390BDBE9B9C5 ", // Colin Ihrig <cjihrig@gmail.com>, Node release team
-    "    71DCFD284A79C3B38668286BC97EC7A07EDE3FC1 ", // James M Snell <jasnell@keybase.io>, Node release team
-    "    DD8F2338BAE7501E3DD5AC78C273792F7D83545D ", // Rod Vagg <rod@vagg.org>, Node release team
-    "    C4F0DFFF4E8C1A8236409D08E73BC641CC11F4C8 ", // Myles Borins <myles.borins@gmail.com>, Node release team
-    "    8FCCA13FEF1D0C2E91008E09770F7A9A5AE15600 ", // Michaël Zasso <targos@protonmail.com>, Node release team
-    "    A48C2BEE680E841632CD4E44F07496B3EB3C1762 ", // Ruben Bridgewater <ruben@bridgewater.de>, Node release team
-    "    B9E2F5981AA6E0CD28160D9FF13993A75599653C ", // Shelley Vohr <shelley.vohr@gmail.com>, Node release team
-    "    C82FA3AE1CBEDC6BE46B9360C43CEC45C17AB93C ", // Richard Lau <riclau@uk.ibm.com>, Node release team
-    "    108F52B48DB57BB0CC439B2997B01419BD92F80A ", // Ruy Adorno <ruyadorno@hotmail.com>, Node release team
     "    1C050899334244A8AF75E53792EF661D867B9DFA ", // Danielle Adams <adamzdanielle@gmail.com>, Node release team, prior to 01/09/21
-    "    74F12602B6F1C4E913FAA37AD3A89613643B6201 ", // Danielle Adams <adamzdanielle@gmail.com>, Node release team
+
+    "    4ED778F539E3634C779C87C6D7062848A1AB005C ", // Beth Griggs <bgriggs@redhat.com>
+    "    94AE36675C464D64BAFA68DD7434390BDBE9B9C5 ", // Colin Ihrig <cjihrig@gmail.com>
+    "    74F12602B6F1C4E913FAA37AD3A89613643B6201 ", // Danielle Adams <adamzdanielle@gmail.com>
+    "    71DCFD284A79C3B38668286BC97EC7A07EDE3FC1 ", // James M Snell <jasnell@keybase.io>
+    "    8FCCA13FEF1D0C2E91008E09770F7A9A5AE15600 ", // Michaël Zasso <targos@protonmail.com>
+    "    C4F0DFFF4E8C1A8236409D08E73BC641CC11F4C8 ", // Myles Borins <myles.borins@gmail.com>
+    "    C82FA3AE1CBEDC6BE46B9360C43CEC45C17AB93C ", // Richard Lau <rlau@redhat.com>
+    "    DD8F2338BAE7501E3DD5AC78C273792F7D83545D ", // Rod Vagg <rod@vagg.org>
+    "    A48C2BEE680E841632CD4E44F07496B3EB3C1762 ", // Ruben Bridgewater <ruben@bridgewater.de>
+    "    108F52B48DB57BB0CC439B2997B01419BD92F80A ", // Ruy Adorno <ruyadorno@hotmail.com>
+    "    B9E2F5981AA6E0CD28160D9FF13993A75599653C ", // Shelley Vohr <shelley.vohr@gmail.com>
     "  ; do ",
-    "    gpg --keyserver na.pool.sks-keyservers.net --recv-keys \"$key\" || ",
-    "    gpg --keyserver pool.sks-keyservers.net --recv-keys \"$key\" || ",
-    "    gpg --keyserver pgp.mit.edu --recv-keys \"$key\" || ",
-    "    gpg --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys \"$key\" || ",
-    "    gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys \"$key\" || ",
-    "    gpg --keyserver keyserver.pgp.com --recv-keys \"$key\"; ",
-    "  done"
+    `gpg --list-keys "$key" || ` +
+    keyservers
+        .map(keyserver =>
+            `(gpg --keyserver ${keyserver} --recv-keys "$key" && gpg --list-keys "$key")`)
+        .join(" || ") + ";",
+     "  done"
 ].join(" ");

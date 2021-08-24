@@ -20,9 +20,12 @@ const CompileState = data `CompileState` (
 
 module.exports = Image;
 
+const FIXME_toImage = fImage =>
+    base(fImage) === Image ? fImage : FIXME_toImage(fImage());
+
 Image.compile = function (fImage)
 {
-    const args = getArguments(fImage);
+    const args = getArguments(FIXME_toImage(fImage));
     const { from, workspace, children } = args;
 
     if (!from)

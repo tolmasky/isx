@@ -48,6 +48,7 @@ const keys =
     "    1C050899334244A8AF75E53792EF661D867B9DFA ", // Danielle Adams <adamzdanielle@gmail.com>, Node release team, prior to 01/09/21
 
     "    4ED778F539E3634C779C87C6D7062848A1AB005C ", // Beth Griggs <bgriggs@redhat.com>
+    "    141F07595B7B3FFE74309A937405533BE57C7D57 ", // Bryan English <bryan@bryanenglish.com>
     "    94AE36675C464D64BAFA68DD7434390BDBE9B9C5 ", // Colin Ihrig <cjihrig@gmail.com>
     "    74F12602B6F1C4E913FAA37AD3A89613643B6201 ", // Danielle Adams <adamzdanielle@gmail.com>
     "    71DCFD284A79C3B38668286BC97EC7A07EDE3FC1 ", // James M Snell <jasnell@keybase.io>

@@ -55,6 +55,7 @@ const keys =
     "    61FC681DFB92A079F1685E77973F295594EC4689 ", // Juan José Arboleda <soyjuanarbol@gmail.com>
     "    8FCCA13FEF1D0C2E91008E09770F7A9A5AE15600 ", // Michaël Zasso <targos@protonmail.com>
     "    C4F0DFFF4E8C1A8236409D08E73BC641CC11F4C8 ", // Myles Borins <myles.borins@gmail.com>
+    "    890C08DB8579162FEE0DF9DB8BEAB4DFCF555EF4 ", // RafaelGSS <rafael.nunu@hotmail.com>
     "    C82FA3AE1CBEDC6BE46B9360C43CEC45C17AB93C ", // Richard Lau <rlau@redhat.com>
     "    DD8F2338BAE7501E3DD5AC78C273792F7D83545D ", // Rod Vagg <rod@vagg.org>
     "    A48C2BEE680E841632CD4E44F07496B3EB3C1762 ", // Ruben Bridgewater <ruben@bridgewater.de>

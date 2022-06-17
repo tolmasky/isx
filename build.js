@@ -5,6 +5,7 @@ const primitives = require("./primitives");
 
 const stdio = ["inherit", "inherit", "inherit"];
 const spawn = require("@await/spawn");
+const dedupe = array => [...new Set(array)];
 
 
 module.exports = async function build({ filename, push, sequential }, properties)
@@ -27,12 +28,13 @@ module.exports = async function build({ filename, push, sequential }, properties
         writeFileSync(DockerfilePath, DockerfileContents, "utf-8");
 
         const { buildContext } = image;
-        const includes = buildContext.filenames.push(DockerfilePath).join("\n");
+        const filenames = buildContext.filenames.push(DockerfilePath);
+        const includes = dedupe(filenames).join("\n");
     
         const steps =
         [
             `printf "${includes}"`,
-            `tar -c --files-from - `,
+            `tar --absolute-names -cv --files-from -`,
             toBuildCommand(image, DockerfilePath)
         ].join(" | ")
 

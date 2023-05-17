@@ -52,6 +52,7 @@ const keys =
     "    94AE36675C464D64BAFA68DD7434390BDBE9B9C5 ", // Colin Ihrig <cjihrig@gmail.com>
     "    74F12602B6F1C4E913FAA37AD3A89613643B6201 ", // Danielle Adams <adamzdanielle@gmail.com>
     "    71DCFD284A79C3B38668286BC97EC7A07EDE3FC1 ", // James M Snell <jasnell@keybase.io>
+    "    61FC681DFB92A079F1685E77973F295594EC4689 ", // Juan José Arboleda <soyjuanarbol@gmail.com> (old)
     "    DD792F5973C6DE52C432CBDAC77ABFA00DDBF2B7 ", // Juan José Arboleda <soyjuanarbol@gmail.com>
     "    8FCCA13FEF1D0C2E91008E09770F7A9A5AE15600 ", // Michaël Zasso <targos@protonmail.com>
     "    C4F0DFFF4E8C1A8236409D08E73BC641CC11F4C8 ", // Myles Borins <myles.borins@gmail.com>
